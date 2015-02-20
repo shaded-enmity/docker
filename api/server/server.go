@@ -551,7 +551,19 @@ func postImagesCreate(eng *engine.Engine, version version.Version, w http.Respon
 			authConfig = &registry.AuthConfig{}
 		}
 	}
-	if image != "" { //pull
+	if id != "" { //pull
+		metaHeaders := map[string][]string{}
+		for k, v := range r.Header {
+			if strings.HasPrefix(k, "X-Meta-") {
+				metaHeaders[k] = v
+			}
+		}
+		job = eng.Job("pull", image, tag)
+		job.SetenvBool("parallel", version.GreaterThan("1.3"))
+		job.SetenvBool("pullid", true)
+		job.SetenvJson("metaHeaders", metaHeaders)
+		job.SetenvJson("authConfig", authConfig)
+	} else if image != "" {
 		if tag == "" {
 			image, tag = parsers.ParseRepositoryTag(image)
 		}
@@ -563,18 +575,6 @@ func postImagesCreate(eng *engine.Engine, version version.Version, w http.Respon
 		}
 		job = eng.Job("pull", image, tag)
 		job.SetenvBool("parallel", version.GreaterThan("1.3"))
-		job.SetenvJson("metaHeaders", metaHeaders)
-		job.SetenvJson("authConfig", authConfig)
-	} else if id != "" {
-		metaHeaders := map[string][]string{}
-		for k, v := range r.Header {
-			if strings.HasPrefix(k, "X-Meta-") {
-				metaHeaders[k] = v
-			}
-		}
-		job = eng.Job("pull", image, tag)
-		job.SetenvBool("parallel", version.GreaterThan("1.3"))
-		job.SetenvBool("pullid", true)
 		job.SetenvJson("metaHeaders", metaHeaders)
 		job.SetenvJson("authConfig", authConfig)
 	} else { //import
