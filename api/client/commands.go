@@ -1254,6 +1254,7 @@ func (cli *DockerCli) CmdPush(args ...string) error {
 func (cli *DockerCli) CmdPull(args ...string) error {
 	cmd := cli.Subcmd("pull", "NAME[:TAG]", "Pull an image or a repository from the registry", true)
 	allTags := cmd.Bool([]string{"a", "-all-tags"}, false, "Download all tagged images in the repository")
+	nameid := cmd.Bool([]string{"i", "-id"}, false, "Image is specified as an ID")
 	cmd.Require(flag.Exact, 1)
 
 	utils.ParseFlags(cmd, args, true)
@@ -1263,6 +1264,13 @@ func (cli *DockerCli) CmdPull(args ...string) error {
 		remote    = cmd.Arg(0)
 		newRemote = remote
 	)
+
+	if *nameid {
+		// we're pulling by an Image ID
+		v.Set("id", *nameid)
+		//remote = 'library/scratch'
+	}
+
 	taglessRemote, tag := parsers.ParseRepositoryTag(remote)
 	if tag == "" && !*allTags {
 		newRemote = taglessRemote + ":" + graph.DEFAULTTAG

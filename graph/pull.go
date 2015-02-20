@@ -29,6 +29,7 @@ func (s *TagStore) CmdPull(job *engine.Job) engine.Status {
 		sf          = utils.NewStreamFormatter(job.GetenvBool("json"))
 		authConfig  = &registry.AuthConfig{}
 		metaHeaders map[string][]string
+		imageid     = job.Args[0]
 	)
 
 	// Resolve the Repository name from fqn to RepositoryInfo
@@ -39,6 +40,10 @@ func (s *TagStore) CmdPull(job *engine.Job) engine.Status {
 
 	if len(job.Args) > 1 {
 		tag = job.Args[1]
+	}
+
+	if job.GetenvBool("pullid") {
+		localName, tag = "scratch", "latest"
 	}
 
 	job.GetenvJson("authConfig", authConfig)
@@ -93,9 +98,17 @@ func (s *TagStore) CmdPull(job *engine.Job) engine.Status {
 		log.Debug("image does not exist on v2 registry, falling back to v1")
 	}
 
-	log.Debugf("pulling v1 repository with local name %q", repoInfo.LocalName)
-	if err = s.pullRepository(r, job.Stdout, repoInfo, tag, sf, job.GetenvBool("parallel")); err != nil {
-		return job.Error(err)
+	if job.GetenvBool("pullid") {
+		log.Debugf("pulling v1 repository by image id %q", imageid)
+		repoData, err = r.GetRepositoryData(remoteName)
+		if err = s.pullImage(r, job.Stdout, imageid, mirrors[0], repoData.Tokens, sf); err != nil {
+			return job.Error(err)
+		}
+	} else {
+		log.Debugf("pulling v1 repository with local name %q", repoInfo.LocalName)
+		if err = s.pullRepository(r, job.Stdout, repoInfo, tag, sf, job.GetenvBool("parallel")); err != nil {
+			return job.Error(err)
+		}
 	}
 
 	if err = job.Eng.Job("log", "pull", logName, "").Run(); err != nil {

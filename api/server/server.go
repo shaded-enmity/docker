@@ -538,6 +538,7 @@ func postImagesCreate(eng *engine.Engine, version version.Version, w http.Respon
 		image = r.Form.Get("fromImage")
 		repo  = r.Form.Get("repo")
 		tag   = r.Form.Get("tag")
+		id    = r.Form.Get("id")
 		job   *engine.Job
 	)
 	authEncoded := r.Header.Get("X-Registry-Auth")
@@ -562,6 +563,18 @@ func postImagesCreate(eng *engine.Engine, version version.Version, w http.Respon
 		}
 		job = eng.Job("pull", image, tag)
 		job.SetenvBool("parallel", version.GreaterThan("1.3"))
+		job.SetenvJson("metaHeaders", metaHeaders)
+		job.SetenvJson("authConfig", authConfig)
+	else if id != "" {
+		metaHeaders := map[string][]string{}
+		for k, v := range r.Header {
+			if strings.HasPrefix(k, "X-Meta-") {
+				metaHeaders[k] = v
+			}
+		}
+		job = eng.Job("pull", image, tag)
+		job.SetenvBool("parallel", version.GreaterThan("1.3"))
+		job.SetenvBool("pullid", true)
 		job.SetenvJson("metaHeaders", metaHeaders)
 		job.SetenvJson("authConfig", authConfig)
 	} else { //import
@@ -1013,6 +1026,15 @@ func getImagesByName(eng *engine.Engine, version version.Version, w http.Respons
 	return job.Run()
 }
 
+func getImageById(eng *engine.Engine, version version.Version, w http.ResponseWriter, r *http.Request, vars map[string]string) error {
+	if vars == nil {
+		return fmt.Errorf("Missing parameter")
+	}
+	var job = eng.Job("image_pull", vars["id"])
+	streamJSON(job, w, false)
+	return job.Run()
+}
+
 func postBuild(eng *engine.Engine, version version.Version, w http.ResponseWriter, r *http.Request, vars map[string]string) error {
 	if version.LessThan("1.3") {
 		return fmt.Errorf("Multipart upload for build is no longer supported. Please upgrade your docker client.")
@@ -1310,6 +1332,7 @@ func createRouter(eng *engine.Engine, logging, enableCors bool, dockerVersion st
 			"/images/{name:.*}/get":           getImagesGet,
 			"/images/{name:.*}/history":       getImagesHistory,
 			"/images/{name:.*}/json":          getImagesByName,
+			"/images/{id:.*}/pull":            getImageById,
 			"/containers/ps":                  getContainersJSON,
 			"/containers/json":                getContainersJSON,
 			"/containers/{name:.*}/export":    getContainersExport,
