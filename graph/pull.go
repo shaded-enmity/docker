@@ -101,7 +101,7 @@ func (s *TagStore) CmdPull(job *engine.Job) engine.Status {
 	if job.GetenvBool("pullid") {
 		log.Debugf("pulling v1 repository by image id %q", imageid)
 		repoData, err = r.GetRepositoryData(remoteName)
-		if err = s.pullImage(r, job.Stdout, imageid, mirrors[0], repoData.Tokens, sf); err != nil {
+		if err = s.pullImage(r, job.Stdout, imageid, repoInfo.Index.Mirrors[0], repoData.Tokens, sf); err != nil {
 			return job.Error(err)
 		}
 	} else {
