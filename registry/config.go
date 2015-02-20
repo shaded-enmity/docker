@@ -213,9 +213,9 @@ func validateRemoteName(remoteName string) error {
 		name = nameParts[0]
 
 		// the repository name must not be a valid image ID
-		if err := utils.ValidateID(name); err == nil {
-			return fmt.Errorf("Invalid repository name (%s), cannot specify 64-byte hexadecimal strings", name)
-		}
+		//if err := utils.ValidateID(name); err == nil {
+		//	return fmt.Errorf("Invalid repository name (%s), cannot specify 64-byte hexadecimal strings", name)
+		//}
 	} else {
 		namespace = nameParts[0]
 		name = nameParts[1]
