@@ -1267,7 +1267,7 @@ func (cli *DockerCli) CmdPull(args ...string) error {
 
 	if *nameid {
 		// we're pulling by an Image ID
-		v.Set("id", *nameid)
+		v.Set("id", "true")
 		//remote = 'library/scratch'
 	}
 
