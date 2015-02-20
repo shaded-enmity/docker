@@ -1265,12 +1265,6 @@ func (cli *DockerCli) CmdPull(args ...string) error {
 		newRemote = remote
 	)
 
-	if *nameid {
-		// we're pulling by an Image ID
-		v.Set("id", "true")
-		//remote = 'library/scratch'
-	}
-
 	taglessRemote, tag := parsers.ParseRepositoryTag(remote)
 	if tag == "" && !*allTags {
 		newRemote = taglessRemote + ":" + graph.DEFAULTTAG
@@ -1280,6 +1274,12 @@ func (cli *DockerCli) CmdPull(args ...string) error {
 	}
 
 	v.Set("fromImage", newRemote)
+	if *nameid {
+		// we're pulling by an Image ID
+		v.Set("id", "true")
+		v.Set("fromImage", taglessRemote)
+		//remote = 'library/scratch'
+	}
 
 	// Resolve the Repository name from fqn to RepositoryInfo
 	repoInfo, err := registry.ParseRepositoryInfo(taglessRemote)
