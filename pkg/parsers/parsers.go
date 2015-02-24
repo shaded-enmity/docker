@@ -66,8 +66,9 @@ func ParseTCPAddr(addr string, defaultAddr string) (string, error) {
 // The tag can be confusing because of a port in a repository name.
 //     Ex: localhost.localdomain:5000/samalba/hipache:latest
 func ParseRepositoryTag(repos string) (string, string) {
+	a := strings.LastIndex(repos, "@")
 	n := strings.LastIndex(repos, ":")
-	if n < 0 {
+	if n < 0 || n > a {
 		return repos, ""
 	}
 	if tag := repos[n+1:]; !strings.Contains(tag, "/") {
