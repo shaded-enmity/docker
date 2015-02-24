@@ -38,14 +38,13 @@ type TagStore struct {
 	pushingPool map[string]chan struct{}
 }
 
-type Digest string
-
+//type Digest string
 //type Digest struct {
 //	method	string
 //	value	string
 //}
 
-type DigestRepository map[Digest]string
+type DigestRepository map[string]string
 type Repository map[string]string
 
 // update Repository mapping with content of u
@@ -293,8 +292,7 @@ func (store *TagStore) GetImageByDigest(repoNameDigest string) (*image.Image, er
 		return nil, err
 	}
 
-	repoName, digest = parsers.ParseRepositoryDigest(repoNameDigest)
-
+	repoName, digest := parsers.ParseRepositoryDigest(repoNameDigest)
 	repoName = registry.NormalizeLocalName(repoName)
 	if repo, exists := store.Digests[repoName]; !exists {
 		return nil, nil
