@@ -374,6 +374,7 @@ func (s *TagStore) pushV2Repository(r *registry.Session, eng *engine.Engine, out
 		}
 
 		// push the manifest
+		var digest string
 		if digest, err := r.PutV2ImageManifest(endpoint, repoInfo.RemoteName, tag, bytes.NewReader([]byte(manifestBytes)), auth); err != nil {
 			return "", err
 		}
@@ -460,8 +461,10 @@ func (s *TagStore) CmdPush(job *engine.Job) engine.Status {
 	}
 
 	if endpoint.Version == registry.APIVersion2 {
-		err := s.pushV2Repository(r, job.Eng, job.Stdout, repoInfo, tag, sf)
+		digest, err := s.pushV2Repository(r, job.Eng, job.Stdout, repoInfo, tag, sf)
+
 		if err == nil {
+			log.Debugf("Image pushed with digest: %s", digest)
 			return engine.StatusOK
 		}
 
