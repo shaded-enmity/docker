@@ -271,31 +271,31 @@ func (r *Session) PutV2ImageManifest(ep *Endpoint, imageName, tagName string, ma
 	log.Debugf("[registry] Calling %q %s", method, routeURL)
 	req, err := r.reqFactory.NewRequest(method, routeURL, manifestRdr)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if err := auth.Authorize(req); err != nil {
-		return nil, err
+		return "", err
 	}
 	res, _, err := r.doRequest(req)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	defer res.Body.Close()
 
 	// All 2xx and 3xx responses can be accepted for a put.
 	if res.StatusCode >= 400 {
 		if res.StatusCode == 401 {
-			return nil, errLoginRequired
+			return "", errLoginRequired
 		}
 		errBody, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 		log.Debugf("Unexpected response from server: %q %#v", errBody, res.Header)
-		return nil, utils.NewHTTPRequestError(fmt.Sprintf("Server error: %d trying to push %s:%s manifest", res.StatusCode, imageName, tagName), res)
+		return "", utils.NewHTTPRequestError(fmt.Sprintf("Server error: %d trying to push %s:%s manifest", res.StatusCode, imageName, tagName), res)
 	}
 
-	return ioutil.ReadAll(res.Body), nil
+	return ioutil.ReadAll(res.Body)
 }
 
 type remoteTags struct {
