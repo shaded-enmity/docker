@@ -359,7 +359,9 @@ func validateDigest(name string) error {
 	if name == "" {
 		return fmt.Errorf("Digest can't be empty")
 	}
-	if i := strings.Index(name, ":"); i != -1 {
+
+	var i int
+	if i = strings.Index(name, ":"); i != -1 {
 		return fmt.Errorf("Missing digest prefix")
 	}
 	method, digest := name[i:], name[:i]
