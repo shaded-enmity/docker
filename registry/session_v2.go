@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/docker/docker/graph"
 	"github.com/docker/docker/registry/v2"
 	"github.com/docker/docker/utils"
 )
@@ -261,7 +262,7 @@ func (r *Session) PutV2ImageBlob(ep *Endpoint, imageName, sumType, sumStr string
 }
 
 // Finally Push the (signed) manifest of the blobs we've just pushed
-func (r *Session) PutV2ImageManifest(ep *Endpoint, imageName, tagName string, manifestRdr io.Reader, auth *RequestAuthorization) error {
+func (r *Session) PutV2ImageManifest(ep *Endpoint, imageName, tagName string, manifestRdr io.Reader, auth *RequestAuthorization) (graph.Digest, error) {
 	routeURL, err := getV2Builder(ep).BuildManifestURL(imageName, tagName)
 	if err != nil {
 		return err
@@ -271,31 +272,31 @@ func (r *Session) PutV2ImageManifest(ep *Endpoint, imageName, tagName string, ma
 	log.Debugf("[registry] Calling %q %s", method, routeURL)
 	req, err := r.reqFactory.NewRequest(method, routeURL, manifestRdr)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err := auth.Authorize(req); err != nil {
-		return err
+		return nil, err
 	}
 	res, _, err := r.doRequest(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer res.Body.Close()
 
 	// All 2xx and 3xx responses can be accepted for a put.
 	if res.StatusCode >= 400 {
 		if res.StatusCode == 401 {
-			return errLoginRequired
+			return nil, errLoginRequired
 		}
 		errBody, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		log.Debugf("Unexpected response from server: %q %#v", errBody, res.Header)
-		return utils.NewHTTPRequestError(fmt.Sprintf("Server error: %d trying to push %s:%s manifest", res.StatusCode, imageName, tagName), res)
+		return nil, utils.NewHTTPRequestError(fmt.Sprintf("Server error: %d trying to push %s:%s manifest", res.StatusCode, imageName, tagName), res)
 	}
 
-	return nil
+	return ioutil.ReadAll(res.Body), nil
 }
 
 type remoteTags struct {

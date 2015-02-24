@@ -38,6 +38,14 @@ type TagStore struct {
 	pushingPool map[string]chan struct{}
 }
 
+type Digest string
+
+//type Digest struct {
+//	method	string
+//	value	string
+//}
+
+type DigestRepository map[Digest]string
 type Repository map[string]string
 
 // update Repository mapping with content of u
@@ -69,7 +77,7 @@ func NewTagStore(path string, graph *Graph, key libtrust.PrivateKey) (*TagStore,
 		graph:        graph,
 		trustKey:     key,
 		Repositories: make(map[string]Repository),
-		Digests:      make(map[string]Repository),
+		Digests:      make(map[string]DigestRepository),
 		pullingPool:  make(map[string]chan struct{}),
 		pushingPool:  make(map[string]chan struct{}),
 	}
@@ -224,7 +232,7 @@ func (store *TagStore) SetDigest(digest, imageName string) error {
 			return fmt.Errorf("Conflict: Digest %s is already set to image %s", digest, old)
 		}
 	} else {
-		repo = make(map[string]string)
+		repo = DigestRepository{}
 		store.Digests[repoName] = repo
 	}
 	repo[digest] = img.ID
