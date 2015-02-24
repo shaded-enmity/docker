@@ -36,6 +36,15 @@ type TagStore struct {
 	pushingPool map[string]chan struct{}
 }
 
+type ImageID string
+type Tag string
+type Digest string
+
+type Mappings struct {
+	tagToID       map[Tag]ImageID
+	digestsToTags map[Digest]Tag
+}
+
 type Repository map[string]string
 
 // update Repository mapping with content of u
