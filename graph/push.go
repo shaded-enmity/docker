@@ -274,7 +274,7 @@ func (s *TagStore) pushImage(r *registry.Session, out io.Writer, imgID, ep strin
 	return imgData.Checksum, nil
 }
 
-func (s *TagStore) pushV2Repository(r *registry.Session, eng *engine.Engine, out io.Writer, repoInfo *registry.RepositoryInfo, tag string, sf *utils.StreamFormatter) error {
+func (s *TagStore) pushV2Repository(r *registry.Session, eng *engine.Engine, out io.Writer, repoInfo *registry.RepositoryInfo, tag string, sf *utils.StreamFormatter) (string, error) {
 	if repoInfo.Official {
 		j := eng.Job("trust_update_base")
 		if err := j.Run(); err != nil {
@@ -286,42 +286,42 @@ func (s *TagStore) pushV2Repository(r *registry.Session, eng *engine.Engine, out
 	if err != nil {
 		if repoInfo.Index.Official {
 			log.Debugf("Unable to push to V2 registry, falling back to v1: %s", err)
-			return ErrV2RegistryUnavailable
+			return "", ErrV2RegistryUnavailable
 		}
-		return fmt.Errorf("error getting registry endpoint: %s", err)
+		return "", fmt.Errorf("error getting registry endpoint: %s", err)
 	}
 
 	tags, err := s.getImageTags(repoInfo.LocalName, tag)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if len(tags) == 0 {
-		return fmt.Errorf("No tags to push for %s", repoInfo.LocalName)
+		return "", fmt.Errorf("No tags to push for %s", repoInfo.LocalName)
 	}
 
 	auth, err := r.GetV2Authorization(endpoint, repoInfo.RemoteName, false)
 	if err != nil {
-		return fmt.Errorf("error getting authorization: %s", err)
+		return "", fmt.Errorf("error getting authorization: %s", err)
 	}
 
 	for _, tag := range tags {
 		log.Debugf("Pushing %s:%s to v2 repository", repoInfo.LocalName, tag)
 		mBytes, err := s.newManifest(repoInfo.LocalName, repoInfo.RemoteName, tag)
 		if err != nil {
-			return err
+			return "", err
 		}
 		js, err := libtrust.NewJSONSignature(mBytes)
 		if err != nil {
-			return err
+			return "", err
 		}
 
 		if err = js.Sign(s.trustKey); err != nil {
-			return err
+			return "", err
 		}
 
 		signedBody, err := js.PrettySignature("signatures")
 		if err != nil {
-			return err
+			return "", err
 		}
 		log.Infof("Signed manifest for %s:%s using daemon's key: %s", repoInfo.LocalName, tag, s.trustKey.KeyID())
 
@@ -329,11 +329,11 @@ func (s *TagStore) pushV2Repository(r *registry.Session, eng *engine.Engine, out
 
 		manifest, verified, err := s.loadManifest(eng, signedBody)
 		if err != nil {
-			return fmt.Errorf("error verifying manifest: %s", err)
+			return "", fmt.Errorf("error verifying manifest: %s", err)
 		}
 
 		if err := checkValidManifest(manifest); err != nil {
-			return fmt.Errorf("invalid manifest: %s", err)
+			return "", fmt.Errorf("invalid manifest: %s", err)
 		}
 
 		if verified {
@@ -348,25 +348,25 @@ func (s *TagStore) pushV2Repository(r *registry.Session, eng *engine.Engine, out
 
 			sumParts := strings.SplitN(sumStr, ":", 2)
 			if len(sumParts) < 2 {
-				return fmt.Errorf("Invalid checksum: %s", sumStr)
+				return "", fmt.Errorf("Invalid checksum: %s", sumStr)
 			}
 			manifestSum := sumParts[1]
 
 			img, err := image.NewImgJSON(imgJSON)
 			if err != nil {
-				return fmt.Errorf("Failed to parse json: %s", err)
+				return "", fmt.Errorf("Failed to parse json: %s", err)
 			}
 
 			// Call mount blob
 			exists, err := r.HeadV2ImageBlob(endpoint, repoInfo.RemoteName, sumParts[0], manifestSum, auth)
 			if err != nil {
 				out.Write(sf.FormatProgress(common.TruncateID(img.ID), "Image push failed", nil))
-				return err
+				return "", err
 			}
 
 			if !exists {
 				if err := s.pushV2Image(r, img, endpoint, repoInfo.RemoteName, sumParts[0], manifestSum, sf, out, auth); err != nil {
-					return err
+					return "", err
 				}
 			} else {
 				out.Write(sf.FormatProgress(common.TruncateID(img.ID), "Image already exists", nil))
@@ -374,11 +374,14 @@ func (s *TagStore) pushV2Repository(r *registry.Session, eng *engine.Engine, out
 		}
 
 		// push the manifest
-		if err := r.PutV2ImageManifest(endpoint, repoInfo.RemoteName, tag, bytes.NewReader([]byte(manifestBytes)), auth); err != nil {
-			return err
+		var digest string
+		if digest, err = r.PutV2ImageManifest(endpoint, repoInfo.RemoteName, tag, bytes.NewReader([]byte(manifestBytes)), auth); err != nil {
+			return "", err
 		}
+
+		return digest, nil
 	}
-	return nil
+	return "", nil
 }
 
 // PushV2Image pushes the image content to the v2 registry, first buffering the contents to disk
@@ -458,8 +461,11 @@ func (s *TagStore) CmdPush(job *engine.Job) engine.Status {
 	}
 
 	if endpoint.Version == registry.APIVersion2 {
-		err := s.pushV2Repository(r, job.Eng, job.Stdout, repoInfo, tag, sf)
+		digest, err := s.pushV2Repository(r, job.Eng, job.Stdout, repoInfo, tag, sf)
+
 		if err == nil {
+			log.Infof("Image pushed with digest: %s (%s)", digest, repoInfo.LocalName)
+			//s.SetDigest(digest, repoInfo.LocalName)
 			return engine.StatusOK
 		}
 

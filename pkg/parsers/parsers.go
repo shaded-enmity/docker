@@ -76,6 +76,14 @@ func ParseRepositoryTag(repos string) (string, string) {
 	return repos, ""
 }
 
+func ParseRepositoryDigest(repos string) (string, string) {
+	n := strings.LastIndex(repos, "@")
+	if n > 0 {
+		return repos[:n], repos[n+1:]
+	}
+	return repos, ""
+}
+
 func PartParser(template, data string) (map[string]string, error) {
 	// ip:public:private
 	var (

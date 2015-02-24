@@ -1258,26 +1258,33 @@ func (cli *DockerCli) CmdPush(args ...string) error {
 }
 
 func (cli *DockerCli) CmdPull(args ...string) error {
-	cmd := cli.Subcmd("pull", "NAME[:TAG]", "Pull an image or a repository from the registry", true)
-	allTags := cmd.Bool([]string{"a", "-all-tags"}, false, "Download all tagged images in the repository")
+	cmd := cli.Subcmd("pull", "NAME[:TAG][@DIGEST]", "Pull an image or a repository from the registry", true)
+	//allTags := cmd.Bool([]string{"a", "-all-tags"}, false, "Download all tagged images in the repository")
 	cmd.Require(flag.Exact, 1)
 
 	utils.ParseFlags(cmd, args, true)
 
 	var (
-		v         = url.Values{}
-		remote    = cmd.Arg(0)
-		newRemote = remote
+		v             = url.Values{}
+		remote        = cmd.Arg(0)
+		newRemote     = remote
+		digest        string
+		tag           string
+		taglessRemote string
 	)
-	taglessRemote, tag := parsers.ParseRepositoryTag(remote)
-	if tag == "" && !*allTags {
-		newRemote = taglessRemote + ":" + graph.DEFAULTTAG
-	}
-	if tag != "" && *allTags {
-		return fmt.Errorf("tag can't be used with --all-tags/-a")
+
+	taglessRemote, digest = parsers.ParseRepositoryDigest(remote)
+	if digest == "" {
+		taglessRemote, tag = parsers.ParseRepositoryTag(remote)
+		if tag == "" {
+			newRemote = taglessRemote + ":" + graph.DEFAULTTAG
+		}
 	}
 
 	v.Set("fromImage", newRemote)
+	//if *allTags {
+	//	v.Set("allTags", "1")
+	//}
 
 	// Resolve the Repository name from fqn to RepositoryInfo
 	repoInfo, err := registry.ParseRepositoryInfo(taglessRemote)

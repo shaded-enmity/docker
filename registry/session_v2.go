@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"strconv"
+	"strings"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/registry/v2"
@@ -64,7 +65,14 @@ func (r *Session) GetV2Authorization(ep *Endpoint, imageName string, readOnly bo
 // 2) PUT the created/signed manifest
 //
 func (r *Session) GetV2ImageManifest(ep *Endpoint, imageName, tagName string, auth *RequestAuthorization) ([]byte, error) {
-	routeURL, err := getV2Builder(ep).BuildManifestURL(imageName, tagName)
+	var routeURL string
+	var err error
+	if strings.Contains(tagName, ":") {
+		routeURL, err = getV2Builder(ep).BuildManifestDigestURL(imageName, tagName)
+	} else {
+		routeURL, err = getV2Builder(ep).BuildManifestURL(imageName, tagName)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -98,6 +106,10 @@ func (r *Session) GetV2ImageManifest(ep *Endpoint, imageName, tagName string, au
 		return nil, fmt.Errorf("Error while reading the http response: %s", err)
 	}
 	return buf, nil
+}
+
+func (r *Session) GetV2ImageManifestByDigest(ep *Endpoint, imageName, digest string, auth *RequestAuthorization) ([]byte, error) {
+	return nil, nil
 }
 
 // - Succeeded to head image blob (already exists)
@@ -261,41 +273,41 @@ func (r *Session) PutV2ImageBlob(ep *Endpoint, imageName, sumType, sumStr string
 }
 
 // Finally Push the (signed) manifest of the blobs we've just pushed
-func (r *Session) PutV2ImageManifest(ep *Endpoint, imageName, tagName string, manifestRdr io.Reader, auth *RequestAuthorization) error {
+func (r *Session) PutV2ImageManifest(ep *Endpoint, imageName, tagName string, manifestRdr io.Reader, auth *RequestAuthorization) (string, error) {
 	routeURL, err := getV2Builder(ep).BuildManifestURL(imageName, tagName)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	method := "PUT"
 	log.Debugf("[registry] Calling %q %s", method, routeURL)
 	req, err := r.reqFactory.NewRequest(method, routeURL, manifestRdr)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if err := auth.Authorize(req); err != nil {
-		return err
+		return "", err
 	}
 	res, _, err := r.doRequest(req)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer res.Body.Close()
 
 	// All 2xx and 3xx responses can be accepted for a put.
 	if res.StatusCode >= 400 {
 		if res.StatusCode == 401 {
-			return errLoginRequired
+			return "", errLoginRequired
 		}
 		errBody, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			return err
+			return "", err
 		}
 		log.Debugf("Unexpected response from server: %q %#v", errBody, res.Header)
-		return utils.NewHTTPRequestError(fmt.Sprintf("Server error: %d trying to push %s:%s manifest", res.StatusCode, imageName, tagName), res)
+		return "", utils.NewHTTPRequestError(fmt.Sprintf("Server error: %d trying to push %s:%s manifest", res.StatusCode, imageName, tagName), res)
 	}
 
-	return nil
+	return res.Header.Get("Docker-Digest"), nil
 }
 
 type remoteTags struct {

@@ -7,6 +7,7 @@ import "github.com/gorilla/mux"
 const (
 	RouteNameBase            = "base"
 	RouteNameManifest        = "manifest"
+	RouteNameManifestDigest  = "manifest-digest"
 	RouteNameTags            = "tags"
 	RouteNameBlob            = "blob"
 	RouteNameBlobUpload      = "blob-upload"
@@ -39,6 +40,13 @@ func Router() *mux.Router {
 	router.
 		Path("/v2/{name:" + RepositoryNameRegexp.String() + "}/manifests/{tag:" + TagNameRegexp.String() + "}").
 		Name(RouteNameManifest)
+
+	// GET      /v2/<name>/manifest/<digest>	Image Manifest	Fetch the image manifest identified by name and digest.
+	// PUT      /v2/<name>/manifest/<digest>	Image Manifest	Upload the image manifest identified by name and digest.
+	// DELETE   /v2/<name>/manifest/<digest>	Image Manifest	Delete the image identified by name and digest.
+	router.
+		Path("/v2/{name:" + RepositoryNameRegexp.String() + "}/manifests/{digest:[a-zA-Z0-9-_+.]+:[a-zA-Z0-9-_+.=]+}").
+		Name(RouteNameManifestDigest)
 
 	// GET	/v2/<name>/tags/list	Tags	Fetch the tags under the repository identified by name.
 	router.

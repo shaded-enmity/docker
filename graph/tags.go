@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 
+	log "github.com/Sirupsen/logrus"
+	Digest "github.com/docker/distribution/digest"
 	"github.com/docker/docker/image"
 	"github.com/docker/docker/pkg/common"
 	"github.com/docker/docker/pkg/parsers"
@@ -22,12 +24,14 @@ const DEFAULTTAG = "latest"
 
 var (
 	validTagName = regexp.MustCompile(`^[\w][\w.-]{0,127}$`)
+	validDigest  = regexp.MustCompile(`^[a-f0-9]*$`)
 )
 
 type TagStore struct {
 	path         string
 	graph        *Graph
 	Repositories map[string]Repository
+	Digests      map[string]DigestRepository
 	trustKey     libtrust.PrivateKey
 	sync.Mutex
 	// FIXME: move push/pull-related fields
@@ -36,6 +40,7 @@ type TagStore struct {
 	pushingPool map[string]chan struct{}
 }
 
+type DigestRepository map[string]string
 type Repository map[string]string
 
 // update Repository mapping with content of u
@@ -67,6 +72,7 @@ func NewTagStore(path string, graph *Graph, key libtrust.PrivateKey) (*TagStore,
 		graph:        graph,
 		trustKey:     key,
 		Repositories: make(map[string]Repository),
+		Digests:      make(map[string]DigestRepository),
 		pullingPool:  make(map[string]chan struct{}),
 		pushingPool:  make(map[string]chan struct{}),
 	}
@@ -107,11 +113,19 @@ func (store *TagStore) reload() error {
 func (store *TagStore) LookupImage(name string) (*image.Image, error) {
 	// FIXME: standardize on returning nil when the image doesn't exist, and err for everything else
 	// (so we can pass all errors here)
-	repos, tag := parsers.ParseRepositoryTag(name)
-	if tag == "" {
-		tag = DEFAULTTAG
+	_, digest := parsers.ParseRepositoryDigest(name)
+	var img *image.Image
+	var err error
+	if digest != "" {
+		img, err = store.GetImageByDigest(name)
+	} else {
+		repos, tag := parsers.ParseRepositoryTag(name)
+		if tag == "" {
+			tag = DEFAULTTAG
+		}
+		img, err = store.GetImage(repos, tag)
 	}
-	img, err := store.GetImage(repos, tag)
+
 	store.Lock()
 	defer store.Unlock()
 	if err != nil {
@@ -200,6 +214,37 @@ func (store *TagStore) Delete(repoName, tag string) (bool, error) {
 	return deleted, store.save()
 }
 
+func (store *TagStore) SetDigest(digest, imageId, imageName string) error {
+	store.Lock()
+	defer store.Unlock()
+	if err := store.reload(); err != nil {
+		return err
+	}
+
+	if _, err := Digest.ParseDigest(digest); err != nil {
+		return err
+	}
+
+	if err := validateDigest(digest); err != nil {
+		return err
+	}
+
+	var repo DigestRepository
+	repoName := registry.NormalizeLocalName(imageName)
+	if r, exists := store.Digests[repoName]; exists {
+		repo = r
+		if old, exists := store.Digests[repoName][digest]; exists && old != imageId {
+			return fmt.Errorf("Conflict: Digest %s is already set to image %s (%s)", digest, old, imageId)
+		}
+	} else {
+		repo = DigestRepository{}
+		store.Digests[repoName] = repo
+	}
+	repo[digest] = imageId
+
+	return store.save()
+}
+
 func (store *TagStore) Set(repoName, tag, imageName string, force bool) error {
 	img, err := store.LookupImage(imageName)
 	store.Lock()
@@ -240,10 +285,37 @@ func (store *TagStore) Get(repoName string) (Repository, error) {
 	if err := store.reload(); err != nil {
 		return nil, err
 	}
+
 	repoName = registry.NormalizeLocalName(repoName)
 	if r, exists := store.Repositories[repoName]; exists {
 		return r, nil
 	}
+	return nil, nil
+}
+
+func (store *TagStore) GetImageByDigest(repoNameDigest string) (*image.Image, error) {
+	store.Lock()
+	defer store.Unlock()
+	if err := store.reload(); err != nil {
+		return nil, err
+	}
+
+	var repo DigestRepository
+	var revision string
+	var exists bool
+
+	repoName, digest := parsers.ParseRepositoryDigest(repoNameDigest)
+	repoName = registry.NormalizeLocalName(repoName)
+
+	if repo, exists = store.Digests[repoName]; !exists && repo != nil {
+		return nil, nil
+	}
+
+	if revision, exists = repo[digest]; exists {
+		log.Debugf("Revision: %q", revision)
+		return store.graph.Get(revision)
+	}
+
 	return nil, nil
 }
 
@@ -289,6 +361,24 @@ func validateRepoName(name string) error {
 	}
 	if name == "scratch" {
 		return fmt.Errorf("'scratch' is a reserved name")
+	}
+	return nil
+}
+
+func validateDigest(name string) error {
+	if name == "" {
+		return fmt.Errorf("Digest can't be empty")
+	}
+	var i int
+	if i = strings.Index(name, ":"); i == -1 {
+		return fmt.Errorf("Missing digest prefix")
+	}
+	method, digest := name[:i], name[i+1:]
+	if method != "sha256" {
+		return fmt.Errorf("Only SHA256 is currently supported")
+	}
+	if !validDigest.MatchString(digest) {
+		return fmt.Errorf("Digest %q contains invalid characters", digest)
 	}
 	return nil
 }
