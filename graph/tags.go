@@ -29,7 +29,7 @@ type TagStore struct {
 	path         string
 	graph        *Graph
 	Repositories map[string]Repository
-	Digests      map[string]Repository
+	Digests      map[string]DigestRepository
 	trustKey     libtrust.PrivateKey
 	sync.Mutex
 	// FIXME: move push/pull-related fields

@@ -262,7 +262,7 @@ func (r *Session) PutV2ImageBlob(ep *Endpoint, imageName, sumType, sumStr string
 }
 
 // Finally Push the (signed) manifest of the blobs we've just pushed
-func (r *Session) PutV2ImageManifest(ep *Endpoint, imageName, tagName string, manifestRdr io.Reader, auth *RequestAuthorization) (graph.Digest, error) {
+func (r *Session) PutV2ImageManifest(ep *Endpoint, imageName, tagName string, manifestRdr io.Reader, auth *RequestAuthorization) (Digest, error) {
 	routeURL, err := getV2Builder(ep).BuildManifestURL(imageName, tagName)
 	if err != nil {
 		return err
