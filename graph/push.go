@@ -375,7 +375,7 @@ func (s *TagStore) pushV2Repository(r *registry.Session, eng *engine.Engine, out
 
 		// push the manifest
 		var digest string
-		if digest, err := r.PutV2ImageManifest(endpoint, repoInfo.RemoteName, tag, bytes.NewReader([]byte(manifestBytes)), auth); err != nil {
+		if digest, err = r.PutV2ImageManifest(endpoint, repoInfo.RemoteName, tag, bytes.NewReader([]byte(manifestBytes)), auth); err != nil {
 			return "", err
 		}
 
