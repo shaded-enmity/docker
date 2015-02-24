@@ -14,6 +14,7 @@ import (
 	"github.com/docker/docker/engine"
 	"github.com/docker/docker/image"
 	"github.com/docker/docker/pkg/common"
+	"github.com/docker/docker/pkg/parsers"
 	"github.com/docker/docker/pkg/tarsum"
 	"github.com/docker/docker/registry"
 	"github.com/docker/docker/utils"
@@ -31,6 +32,11 @@ func (s *TagStore) CmdPull(job *engine.Job) engine.Status {
 		authConfig  = &registry.AuthConfig{}
 		metaHeaders map[string][]string
 	)
+
+	localName, digest := parsers.ParseRepositoryDigest(localName)
+	if digest != "" {
+		log.Debugf("pulling from (%s) by digest %q", localName, digest)
+	}
 
 	// Resolve the Repository name from fqn to RepositoryInfo
 	repoInfo, err := registry.ResolveRepositoryInfo(job, localName)
