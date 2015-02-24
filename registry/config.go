@@ -223,7 +223,6 @@ func validateRemoteName(remoteName string) error {
 
 	if i := strings.Index(name, "@"); i != -1 {
 		name = name[:i-1]
-		log.Debugf("digest-name: %q (%d)", name, i)
 	}
 	if !validNamespaceChars.MatchString(namespace) {
 		return fmt.Errorf("Invalid namespace name (%s). Only [a-z0-9-_] are allowed.", namespace)
