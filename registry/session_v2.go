@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/docker/docker/graph"
 	"github.com/docker/docker/registry/v2"
 	"github.com/docker/docker/utils"
 )
@@ -262,7 +261,7 @@ func (r *Session) PutV2ImageBlob(ep *Endpoint, imageName, sumType, sumStr string
 }
 
 // Finally Push the (signed) manifest of the blobs we've just pushed
-func (r *Session) PutV2ImageManifest(ep *Endpoint, imageName, tagName string, manifestRdr io.Reader, auth *RequestAuthorization) (Digest, error) {
+func (r *Session) PutV2ImageManifest(ep *Endpoint, imageName, tagName string, manifestRdr io.Reader, auth *RequestAuthorization) (string, error) {
 	routeURL, err := getV2Builder(ep).BuildManifestURL(imageName, tagName)
 	if err != nil {
 		return err
