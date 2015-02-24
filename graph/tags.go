@@ -224,8 +224,8 @@ func (store *TagStore) SetDigest(digest, imageName string) error {
 	if err := validateDigest(digest); err != nil {
 		return err
 	}
-	var repo Repository
-	repoName = registry.NormalizeLocalName(repoName)
+	var repo DigestRepository
+	repoName := registry.NormalizeLocalName(imageName)
 	if r, exists := store.Digests[repoName]; exists {
 		repo = r
 		if old, exists := store.Digests[repoName][digest]; exists {
