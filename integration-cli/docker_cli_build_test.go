@@ -2140,6 +2140,8 @@ func TestBuildEnv(t *testing.T) {
 }
 
 func TestBuildContextCleanup(t *testing.T) {
+	testRequires(t, SameHostDaemon)
+
 	name := "testbuildcontextcleanup"
 	defer deleteImages(name)
 	entries, err := ioutil.ReadDir("/var/lib/docker/tmp")
@@ -2165,6 +2167,8 @@ func TestBuildContextCleanup(t *testing.T) {
 }
 
 func TestBuildContextCleanupFailedBuild(t *testing.T) {
+	testRequires(t, SameHostDaemon)
+
 	name := "testbuildcontextcleanup"
 	defer deleteImages(name)
 	defer deleteAllContainers()
@@ -3728,6 +3732,9 @@ ENV	   FROM hello/docker/world
 ENV    TO /docker/world/hello
 ADD    $FROM $TO
 RUN    [ "$(cat $TO)" = "hello" ]
+ENV    abc=def
+ENV    ghi=$abc
+RUN    [ "$ghi" = "def" ]
 `
 	ctx, err := fakeContext(dockerfile, map[string]string{
 		"hello/docker/world": "hello",
@@ -3770,6 +3777,26 @@ ENV    abc 'yyy'
 RUN    [ $abc = \'yyy\' ]
 ENV    abc=
 RUN    [ "$abc" = "" ]
+
+# use grep to make sure if the builder substitutes \$foo by mistake
+# we don't get a false positive
+ENV    abc=\$foo
+RUN    [ "$abc" = "\$foo" ] && (echo "$abc" | grep foo)
+ENV    abc \$foo
+RUN    [ "$abc" = "\$foo" ] && (echo "$abc" | grep foo)
+
+ENV    abc=\'foo\'
+RUN    [ "$abc" = "'foo'" ]
+ENV    abc=\"foo\"
+RUN    [ "$abc" = "\"foo\"" ]
+ENV    abc "foo"
+RUN    [ "$abc" = "\"foo\"" ]
+ENV    abc 'foo'
+RUN    [ "$abc" = "'foo'" ]
+ENV    abc \'foo\'
+RUN    [ "$abc" = "\\'foo\\'" ]
+ENV    abc \"foo\"
+RUN    [ "$abc" = "\\\"foo\\\"" ]
 `
 	ctx, err := fakeContext(dockerfile, map[string]string{
 		"hello/docker/world": "hello",
@@ -4916,4 +4943,39 @@ func TestBuildDotDotFile(t *testing.T) {
 		t.Fatalf("Build was supposed to work: %s", err)
 	}
 	logDone("build - ..file")
+}
+
+func TestBuildNotVerbose(t *testing.T) {
+	defer deleteAllContainers()
+	defer deleteImages("verbose")
+
+	ctx, err := fakeContext("FROM busybox\nENV abc=hi\nRUN echo $abc there", map[string]string{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ctx.Close()
+
+	// First do it w/verbose - baseline
+	buildCmd := exec.Command(dockerBinary, "build", "--no-cache", "-t", "verbose", ".")
+	buildCmd.Dir = ctx.Dir
+	out, _, err := runCommandWithOutput(buildCmd)
+	if err != nil {
+		t.Fatalf("failed to build the image w/o -q: %s, %v", out, err)
+	}
+	if !strings.Contains(out, "hi there") {
+		t.Fatalf("missing output:%s\n", out)
+	}
+
+	// Now do it w/o verbose
+	buildCmd = exec.Command(dockerBinary, "build", "--no-cache", "-q", "-t", "verbose", ".")
+	buildCmd.Dir = ctx.Dir
+	out, _, err = runCommandWithOutput(buildCmd)
+	if err != nil {
+		t.Fatalf("failed to build the image w/ -q: %s, %v", out, err)
+	}
+	if strings.Contains(out, "hi there") {
+		t.Fatalf("Bad output, should not contain 'hi there':%s", out)
+	}
+
+	logDone("build - not verbose")
 }
