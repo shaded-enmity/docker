@@ -1266,7 +1266,7 @@ func (cli *DockerCli) CmdPull(args ...string) error {
 		newRemote = remote
 	)
 
-	//taglessRemote, tag := parsers.ParseRepositoryTag(remote)
+	taglessRemote, tag := parsers.ParseRepositoryTag(remote)
 	//if tag == "" && !*allTags {
 	//	newRemote = taglessRemote + ":" + graph.DEFAULTTAG
 	//}
