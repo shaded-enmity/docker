@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/docker/distribution/digest"
+	Digest "github.com/docker/distribution/digest"
 	"github.com/docker/docker/image"
 	"github.com/docker/docker/pkg/common"
 	"github.com/docker/docker/pkg/parsers"
@@ -221,6 +221,11 @@ func (store *TagStore) SetDigest(digest, imageName string) error {
 	if err := store.reload(); err != nil {
 		return err
 	}
+
+	if _, err := Digest.ParseDigest(digest); err != nil {
+		return err
+	}
+
 	if err := validateDigest(digest); err != nil {
 		return err
 	}
