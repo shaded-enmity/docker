@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/docker/distribution/digest"
 	"github.com/docker/docker/image"
 	"github.com/docker/docker/pkg/common"
 	"github.com/docker/docker/pkg/parsers"
