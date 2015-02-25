@@ -27,7 +27,7 @@ func (s *TagStore) CmdPull(job *engine.Job) engine.Status {
 
 	var (
 		localName   = job.Args[0]
-		tag         string
+		ident       string
 		sf          = utils.NewStreamFormatter(job.GetenvBool("json"))
 		authConfig  = &registry.AuthConfig{}
 		metaHeaders map[string][]string
@@ -35,11 +35,13 @@ func (s *TagStore) CmdPull(job *engine.Job) engine.Status {
 
 	localName, digest := parsers.ParseRepositoryDigest(localName)
 	if digest != "" {
+		ident = digest
 		log.Debugf("pulling from (%s) by digest %q", localName, digest)
 	} else {
 		localName, tag = parsers.ParseRepositoryTag(localName)
 		if tag == "" {
 			tag = "latest" // TODO: Import from commnands.go?
+			ident = tag
 		}
 	}
 
@@ -56,7 +58,7 @@ func (s *TagStore) CmdPull(job *engine.Job) engine.Status {
 	job.GetenvJson("authConfig", authConfig)
 	job.GetenvJson("metaHeaders", &metaHeaders)
 
-	c, err := s.poolAdd("pull", repoInfo.LocalName+":"+tag)
+	c, err := s.poolAdd("pull", repoInfo.LocalName+":"+ident)
 	if err != nil {
 		if c != nil {
 			// Another pull of the same repository is already taking place; just wait for it to finish
@@ -66,7 +68,7 @@ func (s *TagStore) CmdPull(job *engine.Job) engine.Status {
 		}
 		return job.Error(err)
 	}
-	defer s.poolRemove("pull", repoInfo.LocalName+":"+tag)
+	defer s.poolRemove("pull", repoInfo.LocalName+":"+ident)
 
 	log.Debugf("pulling image from host %q with remote name %q", repoInfo.Index.Name, repoInfo.RemoteName)
 	endpoint, err := repoInfo.GetEndpoint()
@@ -81,7 +83,7 @@ func (s *TagStore) CmdPull(job *engine.Job) engine.Status {
 
 	logName := repoInfo.LocalName
 	if tag != "" {
-		logName += ":" + tag
+		logName += ":" + ident
 	}
 
 	if len(repoInfo.Index.Mirrors) == 0 && ((repoInfo.Official && repoInfo.Index.Official) || endpoint.Version == registry.APIVersion2) {
@@ -93,7 +95,7 @@ func (s *TagStore) CmdPull(job *engine.Job) engine.Status {
 		}
 
 		log.Debugf("pulling v2 repository with local name %q", repoInfo.LocalName)
-		if err := s.pullV2Repository(job.Eng, r, job.Stdout, repoInfo, tag, sf, job.GetenvBool("parallel")); err == nil {
+		if err := s.pullV2Repository(job.Eng, r, job.Stdout, repoInfo, ident, sf, job.GetenvBool("parallel")); err == nil {
 			if err = job.Eng.Job("log", "pull", logName, "").Run(); err != nil {
 				log.Errorf("Error logging event 'pull' for %s: %s", logName, err)
 			}
@@ -381,6 +383,31 @@ type downloadInfo struct {
 	length     int64
 	downloaded bool
 	err        chan error
+}
+
+func (s *TagStore) pullV2RepositoryByDigest(eng *engine.Engine, r *registry.Session, out io.Writer, repoInfo *registry.RepositoryInfo, digest string, sf *utils.StreamFormatter, parallel bool) error {
+	endpoint, err := r.V2RegistryEndpoint(repoInfo.Index)
+	if err != nil {
+		if repoInfo.Index.Official {
+			log.Debugf("Unable to pull from V2 registry, falling back to v1: %s", err)
+			return ErrV2RegistryUnavailable
+		}
+		return fmt.Errorf("error getting registry endpoint: %s", err)
+	}
+	auth, err := r.GetV2Authorization(endpoint, repoInfo.RemoteName, true)
+	if err != nil {
+		return fmt.Errorf("error getting authorization: %s", err)
+	}
+	var layersDownloaded bool
+	if downloaded, err := s.pullV2Digest(eng, r, out, endpoint, repoInfo, digest, sf, parallel, auth); err != nil {
+		return err
+	} else if downloaded {
+		layersDownloaded = true
+	}
+
+	requested := repoInfo.CanonicalName + "@" + digest
+	WriteStatus(requested, out, sf, layersDownloaded)
+	return nil
 }
 
 func (s *TagStore) pullV2Repository(eng *engine.Engine, r *registry.Session, out io.Writer, repoInfo *registry.RepositoryInfo, tag string, sf *utils.StreamFormatter, parallel bool) error {
