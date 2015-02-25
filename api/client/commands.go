@@ -1259,7 +1259,7 @@ func (cli *DockerCli) CmdPush(args ...string) error {
 
 func (cli *DockerCli) CmdPull(args ...string) error {
 	cmd := cli.Subcmd("pull", "NAME[:TAG]", "Pull an image or a repository from the registry", true)
-	allTags := cmd.Bool([]string{"a", "-all-tags"}, false, "Download all tagged images in the repository")
+	//allTags := cmd.Bool([]string{"a", "-all-tags"}, false, "Download all tagged images in the repository")
 	cmd.Require(flag.Exact, 1)
 
 	utils.ParseFlags(cmd, args, true)
@@ -1270,7 +1270,7 @@ func (cli *DockerCli) CmdPull(args ...string) error {
 		newRemote = remote
 	)
 
-	taglessRemote, tag := parsers.ParseRepositoryTag(remote)
+	taglessRemote, _ := parsers.ParseRepositoryTag(remote)
 	//if tag == "" && !*allTags {
 	//	newRemote = taglessRemote + ":" + graph.DEFAULTTAG
 	//}
