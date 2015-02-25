@@ -100,6 +100,10 @@ func (r *Session) GetV2ImageManifest(ep *Endpoint, imageName, tagName string, au
 	return buf, nil
 }
 
+func (r *Session) GetV2ImageManifestByDigest(ep *Endpoint, imageName, digest string, auth *RequestAuthorization) ([]byte, error) {
+	return nil, nil
+}
+
 // - Succeeded to head image blob (already exists)
 // - Failed with no error (continue to Push the Blob)
 // - Failed with error

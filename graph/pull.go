@@ -12,6 +12,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/engine"
+	"github.com/docker/docker/graph"
 	"github.com/docker/docker/image"
 	"github.com/docker/docker/pkg/common"
 	"github.com/docker/docker/pkg/parsers"
@@ -452,7 +453,7 @@ func (s *TagStore) pullV2ByManifest(eng *engine.Engine, r *registry.Session, out
 	if verified {
 		log.Printf("Image manifest for %s:%s has been verified", repoInfo.CanonicalName, ident)
 	}
-	out.Write(sf.FormatStatus(tag, "Pulling from %s", repoInfo.CanonicalName))
+	out.Write(sf.FormatStatus(ident, "Pulling from %s", repoInfo.CanonicalName))
 
 	downloads := make([]downloadInfo, len(manifest.FSLayers))
 
@@ -581,7 +582,7 @@ func (s *TagStore) pullV2ByManifest(eng *engine.Engine, r *registry.Session, out
 	}
 
 	// s.SetDigest(digest)
-	if s.validateDigest(ident) {
+	if graph.validateDigest(ident) {
 		if err = s.SetDigest(ident, repoInfo.LocalName); err != nil {
 			return false, err
 		}
