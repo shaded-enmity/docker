@@ -96,13 +96,25 @@ func (s *TagStore) CmdPull(job *engine.Job) engine.Status {
 		}
 
 		log.Debugf("pulling v2 repository with local name %q", repoInfo.LocalName)
-		if err := s.pullV2Repository(job.Eng, r, job.Stdout, repoInfo, ident, sf, job.GetenvBool("parallel")); err == nil {
-			if err = job.Eng.Job("log", "pull", logName, "").Run(); err != nil {
-				log.Errorf("Error logging event 'pull' for %s: %s", logName, err)
+
+		if digest != "" {
+			if err := s.pullV2RepositoryByDigest(job.Eng, r, job.Stdout, repoInfo, ident, sf, job.GetenvBool("parallel")); err == nil {
+				if err = job.Eng.Job("log", "pull", logName, "").Run(); err != nil {
+					log.Errorf("Error logging event 'pull' for %s: %s", logName, err)
+				}
+				return engine.StatusOK
+			} else if err != registry.ErrDoesNotExist && err != ErrV2RegistryUnavailable {
+				log.Errorf("Error from V2 registry: %s", err)
 			}
-			return engine.StatusOK
-		} else if err != registry.ErrDoesNotExist && err != ErrV2RegistryUnavailable {
-			log.Errorf("Error from V2 registry: %s", err)
+		} else {
+			if err := s.pullV2Repository(job.Eng, r, job.Stdout, repoInfo, ident, sf, job.GetenvBool("parallel")); err == nil {
+				if err = job.Eng.Job("log", "pull", logName, "").Run(); err != nil {
+					log.Errorf("Error logging event 'pull' for %s: %s", logName, err)
+				}
+				return engine.StatusOK
+			} else if err != registry.ErrDoesNotExist && err != ErrV2RegistryUnavailable {
+				log.Errorf("Error from V2 registry: %s", err)
+			}
 		}
 
 		log.Debug("image does not exist on v2 registry, falling back to v1")
