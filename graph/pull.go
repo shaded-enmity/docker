@@ -28,6 +28,7 @@ func (s *TagStore) CmdPull(job *engine.Job) engine.Status {
 	var (
 		localName   = job.Args[0]
 		ident       string
+		tag         string
 		sf          = utils.NewStreamFormatter(job.GetenvBool("json"))
 		authConfig  = &registry.AuthConfig{}
 		metaHeaders map[string][]string
