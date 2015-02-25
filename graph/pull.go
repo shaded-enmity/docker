@@ -586,7 +586,7 @@ func (s *TagStore) pullV2ByManifest(eng *engine.Engine, r *registry.Session, out
 			return false, err
 		}
 	} else {
-		if err = s.Set(repoInfo.LocalName, tag, downloads[0].img.ID, true); err != nil {
+		if err = s.Set(repoInfo.LocalName, ident, downloads[0].img.ID, true); err != nil {
 			return false, err
 		}
 	}
