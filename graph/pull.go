@@ -12,7 +12,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/engine"
-	"github.com/docker/docker/graph"
 	"github.com/docker/docker/image"
 	"github.com/docker/docker/pkg/common"
 	"github.com/docker/docker/pkg/parsers"
@@ -581,8 +580,7 @@ func (s *TagStore) pullV2ByManifest(eng *engine.Engine, r *registry.Session, out
 		out.Write(sf.FormatStatus(repoInfo.CanonicalName+":"+ident, "The image you are pulling has been verified. Important: image verification is a tech preview feature and should not be relied on to provide security."))
 	}
 
-	// s.SetDigest(digest)
-	if graph.validateDigest(ident) {
+	if strings.Contains(ident, ":") {
 		if err = s.SetDigest(ident, repoInfo.LocalName); err != nil {
 			return false, err
 		}
