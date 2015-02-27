@@ -68,7 +68,7 @@ func ParseTCPAddr(addr string, defaultAddr string) (string, error) {
 func ParseRepositoryTag(repos string) (string, string) {
 	a := strings.LastIndex(repos, "@")
 	n := strings.LastIndex(repos, ":")
-	if n < 0 || n > a {
+	if n < 0 || (n > a && a != -1) {
 		return repos, ""
 	}
 	if tag := repos[n+1:]; !strings.Contains(tag, "/") {
