@@ -34,7 +34,9 @@ func (s *TagStore) CmdPull(job *engine.Job) engine.Status {
 		metaHeaders map[string][]string
 	)
 
+	log.Debugf("xrepo: (%q) tag: (%q)", localName, tag)
 	localName, digest := parsers.ParseRepositoryDigest(localName)
+	log.Debugf("XRepo: (%q) tag: (%q)", localName, tag)
 	if digest != "" {
 		ident = digest
 		log.Debugf("pulling from (%s) by digest %q", localName, digest)
