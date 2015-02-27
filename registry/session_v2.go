@@ -299,11 +299,7 @@ func (r *Session) PutV2ImageManifest(ep *Endpoint, imageName, tagName string, ma
 		return "", utils.NewHTTPRequestError(fmt.Sprintf("Server error: %d trying to push %s:%s manifest", res.StatusCode, imageName, tagName), res)
 	}
 
-	if bytes, err := ioutil.ReadAll(res.Body); err == nil {
-		return string(bytes), nil
-	}
-
-	return "", err
+	return res.Header.Get("Docker-Digest"), nil
 }
 
 type remoteTags struct {
