@@ -40,6 +40,7 @@ func (s *TagStore) CmdPull(job *engine.Job) engine.Status {
 		log.Debugf("pulling from (%s) by digest %q", localName, digest)
 	} else {
 		localName, tag = parsers.ParseRepositoryTag(localName)
+		log.Debugf("Repo: (%q) tag: (%q)", localName, tag)
 		if tag == "" {
 			tag = "latest" // TODO: Import from commnands.go?
 			ident = tag
