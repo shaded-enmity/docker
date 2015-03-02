@@ -3,7 +3,6 @@ package daemon
 import (
 	"fmt"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/engine"
 	"github.com/docker/docker/graph"
 	"github.com/docker/docker/image"
@@ -80,7 +79,6 @@ func (daemon *Daemon) Create(config *runconfig.Config, hostConfig *runconfig.Hos
 		imgID     string
 		err       error
 	)
-	log.Debugf(".. ContainerCreate: %q", config.Image)
 	if config.Image != "" {
 		img, err = daemon.repositories.LookupImage(config.Image)
 		if err != nil {
