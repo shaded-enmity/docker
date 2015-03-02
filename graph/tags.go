@@ -251,7 +251,7 @@ func (store *TagStore) SetDigest(digest, imageId, imageName string) error {
 	}
 	repo[digest] = imageId
 
-	data, err := json.Marshal(store.Digests)
+	data, err = json.Marshal(store.Digests)
 	log.Debugf("A: %s", string(data))
 
 	return store.save()
