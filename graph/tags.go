@@ -124,6 +124,8 @@ func (store *TagStore) LookupImage(name string) (*image.Image, error) {
 	var err error
 	if digest != "" {
 		img, err = store.GetImageByDigest(name)
+		data, _ := json.Marshal(store.Digests)
+		log.Debugf("A: %s", string(data))
 	} else {
 		repos, tag := parsers.ParseRepositoryTag(name)
 		if tag == "" {
@@ -235,9 +237,6 @@ func (store *TagStore) SetDigest(digest, imageId, imageName string) error {
 		return err
 	}
 
-	data, _ := json.Marshal(store.Digests)
-	log.Debugf("B: %s", string(data))
-
 	var repo DigestRepository
 	repoName := registry.NormalizeLocalName(imageName)
 	if r, exists := store.Digests[repoName]; exists {
@@ -250,9 +249,6 @@ func (store *TagStore) SetDigest(digest, imageId, imageName string) error {
 		store.Digests[repoName] = repo
 	}
 	repo[digest] = imageId
-
-	data, _ = json.Marshal(store.Digests)
-	log.Debugf("A: %s", string(data))
 
 	return store.save()
 }
