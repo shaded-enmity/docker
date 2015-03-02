@@ -464,7 +464,8 @@ func (s *TagStore) CmdPush(job *engine.Job) engine.Status {
 		digest, err := s.pushV2Repository(r, job.Eng, job.Stdout, repoInfo, tag, sf)
 
 		if err == nil {
-			log.Debugf("Image pushed with digest: %s", digest)
+			log.Infof("Image pushed with digest: %s (%s)", digest, repoInfo.LocalName)
+			s.SetDigest(digest, repoInfo.LocalName)
 			return engine.StatusOK
 		}
 
