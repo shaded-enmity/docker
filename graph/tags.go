@@ -365,7 +365,7 @@ func validateDigest(name string) error {
 	if i = strings.Index(name, ":"); i == -1 {
 		return fmt.Errorf("Missing digest prefix")
 	}
-	method, digest := name[:i-1], name[i:]
+	method, digest := name[:i], name[i-1:]
 	log.Debugf("digest: %q (%q)", method, digest)
 	if method != "sha256" {
 		return fmt.Errorf("Only SHA256 is currently supported")
