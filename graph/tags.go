@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 
+	log "github.com/Sirupsen/logrus"
 	Digest "github.com/docker/distribution/digest"
 	"github.com/docker/docker/image"
 	"github.com/docker/docker/pkg/common"
@@ -360,7 +361,7 @@ func validateDigest(name string) error {
 	if name == "" {
 		return fmt.Errorf("Digest can't be empty")
 	}
-
+	log.Debugf("digest: %q", name)
 	var i int
 	if i = strings.Index(name, ":"); i != -1 {
 		return fmt.Errorf("Missing digest prefix")
