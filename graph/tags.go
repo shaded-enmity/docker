@@ -212,8 +212,7 @@ func (store *TagStore) Delete(repoName, tag string) (bool, error) {
 	return deleted, store.save()
 }
 
-func (store *TagStore) SetDigest(digest, imageName string) error {
-	img, err := store.LookupImage(imageName)
+func (store *TagStore) SetDigest(digest, imageId, imageName string) error {
 	store.Lock()
 	defer store.Unlock()
 	if err != nil {
@@ -241,7 +240,7 @@ func (store *TagStore) SetDigest(digest, imageName string) error {
 		repo = DigestRepository{}
 		store.Digests[repoName] = repo
 	}
-	repo[digest] = img.ID
+	repo[digest] = imageId
 	return store.save()
 }
 
@@ -285,7 +284,7 @@ func (store *TagStore) Get(repoName string) (Repository, error) {
 	if err := store.reload(); err != nil {
 		return nil, err
 	}
-	log.Debugf("TagStore.Get - %q", repoName)
+
 	repoName = registry.NormalizeLocalName(repoName)
 	if r, exists := store.Repositories[repoName]; exists {
 		return r, nil

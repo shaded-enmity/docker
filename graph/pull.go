@@ -555,7 +555,7 @@ func (s *TagStore) pullV2Tag(eng *engine.Engine, r *registry.Session, out io.Wri
 	}
 
 	if strings.Contains(tag, ":") {
-		if err = s.SetDigest(tag, repoInfo.LocalName); err != nil {
+		if err = s.SetDigest(tag, downloads[0].img.ID, repoInfo.LocalName); err != nil {
 			return false, err
 		}
 	} else {
