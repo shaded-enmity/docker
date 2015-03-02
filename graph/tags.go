@@ -235,7 +235,8 @@ func (store *TagStore) SetDigest(digest, imageId, imageName string) error {
 		return err
 	}
 
-	log.Debugf("B: %s", string(json.Marshal(store.Digests)))
+	data, err := json.Marshal(store.Digests)
+	log.Debugf("B: %s", string(data))
 
 	var repo DigestRepository
 	repoName := registry.NormalizeLocalName(imageName)
@@ -250,7 +251,8 @@ func (store *TagStore) SetDigest(digest, imageId, imageName string) error {
 	}
 	repo[digest] = imageId
 
-	log.Debugf("A: %s", string(json.Marshal(store.Digests)))
+	data, err := json.Marshal(store.Digests)
+	log.Debugf("A: %s", string(data))
 
 	return store.save()
 }
