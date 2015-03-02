@@ -285,7 +285,7 @@ func (store *TagStore) Get(repoName string) (Repository, error) {
 	if err := store.reload(); err != nil {
 		return nil, err
 	}
-	log.Debugf("TagStore.Get")
+	log.Debugf("TagStore.Get - %q", repoName)
 	repoName = registry.NormalizeLocalName(repoName)
 	if r, exists := store.Repositories[repoName]; exists {
 		return r, nil
