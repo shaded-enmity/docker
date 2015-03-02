@@ -34,19 +34,11 @@ func (s *TagStore) CmdPull(job *engine.Job) engine.Status {
 		metaHeaders map[string][]string
 	)
 
-	log.Debugf("xrepo: (%q) tag: (%q)", localName, tag)
+	log.Debugf("%q // %q // %d", job.Args[0], job.Args[1], len(job.Args))
+
 	localName, digest := parsers.ParseRepositoryDigest(localName)
-	log.Debugf("XRepo: (%q) tag: (%q)", localName, tag)
 	if digest != "" {
 		ident = digest
-		log.Debugf("pulling from (%s) by digest %q", localName, digest)
-	} else {
-		localName, tag = parsers.ParseRepositoryTag(localName)
-		log.Debugf("Repo: (%q) tag: (%q)", localName, tag)
-		if tag == "" {
-			tag = "latest" // TODO: Import from commnands.go?
-			ident = tag
-		}
 	}
 
 	// Resolve the Repository name from fqn to RepositoryInfo
