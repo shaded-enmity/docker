@@ -82,7 +82,6 @@ func (daemon *Daemon) Create(config *runconfig.Config, hostConfig *runconfig.Hos
 	)
 	if config.Image != "" {
 		img, err = daemon.repositories.LookupImage(config.Image)
-		log.Debugf("Create image: %q", img.ID)
 		if err != nil {
 			return nil, nil, err
 		}
