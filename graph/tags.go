@@ -231,7 +231,7 @@ func (store *TagStore) SetDigest(digest, imageId, imageName string) error {
 	if r, exists := store.Digests[repoName]; exists {
 		repo = r
 		if old, exists := store.Digests[repoName][digest]; exists {
-			return fmt.Errorf("Conflict: Digest %s is already set to image %s", digest, old)
+			return fmt.Errorf("Conflict: Digest %s is already set to image %s (%s)", digest, old, imageId)
 		}
 	} else {
 		repo = DigestRepository{}
