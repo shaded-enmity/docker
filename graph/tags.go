@@ -361,12 +361,12 @@ func validateDigest(name string) error {
 	if name == "" {
 		return fmt.Errorf("Digest can't be empty")
 	}
-	log.Debugf("digest: %q", name)
 	var i int
 	if i = strings.Index(name, ":"); i == -1 {
 		return fmt.Errorf("Missing digest prefix")
 	}
 	method, digest := name[i:], name[:i]
+	log.Debugf("digest: %q (%q)", method, digest)
 	if method != "sha256" {
 		return fmt.Errorf("Only SHA256 is currently supported")
 	}
