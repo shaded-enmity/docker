@@ -1272,10 +1272,10 @@ func (cli *DockerCli) CmdPull(args ...string) error {
 		taglessRemote string
 	)
 
-	taglessRemote, digest := parsers.ParseRepositoryDigest(remote)
+	taglessRemote, digest = parsers.ParseRepositoryDigest(remote)
 	if digest == "" {
 		log.Debugf("no digest (%q)", remote)
-		taglessRemote, tag := parsers.ParseRepositoryTag(remote)
+		taglessRemote, tag = parsers.ParseRepositoryTag(remote)
 		log.Debugf("tr (%q) t (%q)", taglessRemote, tag)
 		if tag == "" {
 			log.Debugf("new remote (%q)", taglessRemote)
