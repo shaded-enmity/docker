@@ -1278,6 +1278,7 @@ func (cli *DockerCli) CmdPull(args ...string) error {
 		}
 	}
 
+	log.Debugf("pulling from: %q %q %q %q", taglessRemote, digest, tag, newRemote)
 	v.Set("fromImage", newRemote)
 	if *allTags {
 		v.Set("allTags", "1")
