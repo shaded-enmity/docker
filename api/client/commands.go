@@ -1275,20 +1275,16 @@ func (cli *DockerCli) CmdPull(args ...string) error {
 
 	taglessRemote, digest = parsers.ParseRepositoryDigest(remote)
 	if digest == "" {
-		log.Debugf("no digest (%q)", remote)
 		taglessRemote, tag = parsers.ParseRepositoryTag(remote)
-		log.Debugf("tr (%q) t (%q)", taglessRemote, tag)
 		if tag == "" {
-			log.Debugf("new remote (%q)", taglessRemote)
 			newRemote = taglessRemote + ":" + graph.DEFAULTTAG
 		}
 	}
 
-	log.Debugf("pulling from: %q %q %q %q", taglessRemote, digest, tag, newRemote)
 	v.Set("fromImage", newRemote)
-	if *allTags {
-		v.Set("allTags", "1")
-	}
+	//if *allTags {
+	//	v.Set("allTags", "1")
+	//}
 
 	// Resolve the Repository name from fqn to RepositoryInfo
 	repoInfo, err := registry.ParseRepositoryInfo(taglessRemote)
