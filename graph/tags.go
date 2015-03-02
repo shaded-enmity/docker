@@ -119,7 +119,7 @@ func (store *TagStore) reload() error {
 func (store *TagStore) LookupImage(name string) (*image.Image, error) {
 	// FIXME: standardize on returning nil when the image doesn't exist, and err for everything else
 	// (so we can pass all errors here)
-	repos, digest := parsers.ParseRepositoryDigest(name)
+	_, digest := parsers.ParseRepositoryDigest(name)
 	var img *image.Image
 	var err error
 	if digest != "" {
