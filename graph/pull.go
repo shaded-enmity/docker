@@ -50,7 +50,7 @@ func (s *TagStore) CmdPull(job *engine.Job) engine.Status {
 	if len(job.Args) > 1 {
 		tag = job.Args[1]
 		if digest != "" {
-			ident += tag
+			ident += ":" + tag
 		} else {
 			ident = tag
 		}

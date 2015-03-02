@@ -64,7 +64,14 @@ func (r *Session) GetV2Authorization(ep *Endpoint, imageName string, readOnly bo
 // 2) PUT the created/signed manifest
 //
 func (r *Session) GetV2ImageManifest(ep *Endpoint, imageName, tagName string, auth *RequestAuthorization) ([]byte, error) {
-	routeURL, err := getV2Builder(ep).BuildManifestURL(imageName, tagName)
+	var routeURL string
+	var err error
+	if strings.Contains(tagName, ":") {
+		routeURL, err = getV2Builder(ep).BuildManifestDigestURL(imageName, tagName)
+	} else {
+		routeURL, err = getV2Builder(ep).BuildManifestURL(imageName, tagName)
+	}
+
 	if err != nil {
 		return nil, err
 	}
