@@ -1268,6 +1268,7 @@ func (cli *DockerCli) CmdPull(args ...string) error {
 		v             = url.Values{}
 		remote        = cmd.Arg(0)
 		newRemote     = remote
+		digest        string
 		tag           string
 		taglessRemote string
 	)
