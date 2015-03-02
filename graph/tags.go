@@ -246,6 +246,7 @@ func (store *TagStore) SetDigest(digest, imageId, imageName string) error {
 		store.Digests[repoName] = repo
 	}
 	repo[digest] = imageId
+	log.Debugf("sD: %q - %q", repoName, digest)
 	return store.save()
 }
 
@@ -306,7 +307,6 @@ func (store *TagStore) GetImageByDigest(repoNameDigest string) (*image.Image, er
 	var repo Repository
 	repoName, digest := parsers.ParseRepositoryDigest(repoNameDigest)
 	repoName = registry.NormalizeLocalName(repoName)
-	log.Debugf("rNd: %q - %q", repoName, digest)
 
 	if repo, exists := store.Digests[repoName]; !exists && repo != nil {
 		return nil, nil
@@ -374,7 +374,6 @@ func validateDigest(name string) error {
 		return fmt.Errorf("Missing digest prefix")
 	}
 	method, digest := name[:i], name[i+1:]
-	log.Debugf("digest: %q (%q)", method, digest)
 	if method != "sha256" {
 		return fmt.Errorf("Only SHA256 is currently supported")
 	}
