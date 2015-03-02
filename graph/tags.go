@@ -124,8 +124,6 @@ func (store *TagStore) LookupImage(name string) (*image.Image, error) {
 	var err error
 	if digest != "" {
 		img, err = store.GetImageByDigest(name)
-		data, _ := json.Marshal(store.Digests)
-		log.Debugf("A: %s", string(data))
 	} else {
 		repos, tag := parsers.ParseRepositoryTag(name)
 		if tag == "" {
@@ -314,6 +312,9 @@ func (store *TagStore) GetImageByDigest(repoNameDigest string) (*image.Image, er
 	if repo, exists := store.Digests[repoName]; !exists && repo != nil {
 		return nil, nil
 	}
+
+	data, _ := json.Marshal(repo)
+	log.Debugf("A: %s %q %s", repoName, digest, string(data))
 	if revision, exists := repo[digest]; exists {
 		return store.graph.Get(revision)
 	}
