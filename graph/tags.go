@@ -299,18 +299,22 @@ func (store *TagStore) GetImageByDigest(repoNameDigest string) (*image.Image, er
 	if err := store.reload(); err != nil {
 		return nil, err
 	}
+
 	var repo DigestRepository
+	var revision string
+	var exists bool
+
 	repoName, digest := parsers.ParseRepositoryDigest(repoNameDigest)
 	repoName = registry.NormalizeLocalName(repoName)
 
-	if repo, exists := store.Digests[repoName]; !exists && repo != nil {
+	if repo, exists = store.Digests[repoName]; !exists && repo != nil {
 		return nil, nil
 	}
 
-	//data, _ := json.Marshal(store.Digests)
-	//rdata, _ := json.Marshal(store.Digests[repoName])
-	//log.Debugf("A: %s\n %q\n %s\n %s", repoName, digest, string(data), string(rdata))
-	if revision, exists := repo[digest]; exists {
+	data, _ := json.Marshal(store.Digests)
+	rdata, _ := json.Marshal(repo)
+	log.Debugf("A: %s\n %q\n %s\n %s", repoName, digest, string(data), string(rdata))
+	if revision, exists = repo[digest]; exists {
 		log.Debugf("Revision: %q", revision)
 		return store.graph.Get(revision)
 	}
