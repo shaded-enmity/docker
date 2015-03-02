@@ -3,7 +3,6 @@ package daemon
 import (
 	"fmt"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/engine"
 	"github.com/docker/docker/graph"
 	"github.com/docker/docker/image"
