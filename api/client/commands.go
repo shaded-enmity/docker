@@ -1270,13 +1270,13 @@ func (cli *DockerCli) CmdPull(args ...string) error {
 		newRemote = remote
 	)
 
-	taglessRemote, _ := parsers.ParseRepositoryTag(remote)
-	//if tag == "" && !*allTags {
-	//	newRemote = taglessRemote + ":" + graph.DEFAULTTAG
-	//}
-	//if tag != "" && *allTags {
-	//	return fmt.Errorf("tag can't be used with --all-tags/-a")
-	//}
+	remote, digest := parsers.ParseRepositoryDigest(remote)
+	if digest == "" {
+		taglessRemote, tag := parsers.ParseRepositoryTag(remote)
+		if tag != "" {
+			newRemote = taglessRemote + ":" + graph.DEFAULTTAG
+		}
+	}
 
 	v.Set("fromImage", newRemote)
 	if *allTags {
