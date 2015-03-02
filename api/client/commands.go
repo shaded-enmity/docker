@@ -1275,6 +1275,7 @@ func (cli *DockerCli) CmdPull(args ...string) error {
 	if digest == "" {
 		log.Debugf("no digest (%q)", remote)
 		taglessRemote, tag := parsers.ParseRepositoryTag(remote)
+		log.Debugf("tr (%q) t (%q)", taglessRemote, tag)
 		if tag == "" {
 			log.Debugf("new remote (%q)", taglessRemote)
 			newRemote = taglessRemote + ":" + graph.DEFAULTTAG
