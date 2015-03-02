@@ -363,7 +363,7 @@ func validateDigest(name string) error {
 	}
 	log.Debugf("digest: %q", name)
 	var i int
-	if i = strings.Index(name, ":"); i != -1 {
+	if i = strings.Index(name, ":"); i == -1 {
 		return fmt.Errorf("Missing digest prefix")
 	}
 	method, digest := name[i:], name[:i]
