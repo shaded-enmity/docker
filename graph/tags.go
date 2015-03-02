@@ -307,11 +307,11 @@ func (store *TagStore) GetImageByDigest(repoNameDigest string) (*image.Image, er
 		return nil, nil
 	}
 
-	data, _ := json.Marshal(store.Digests)
-	rdata, _ := json.Marshal(store.Digests[repoName])
-
-	log.Debugf("A: %s\n %q\n %s\n %s", repoName, digest, string(data), string(rdata))
+	//data, _ := json.Marshal(store.Digests)
+	//rdata, _ := json.Marshal(store.Digests[repoName])
+	//log.Debugf("A: %s\n %q\n %s\n %s", repoName, digest, string(data), string(rdata))
 	if revision, exists := repo[digest]; exists {
+		log.Debugf("Revision: %q", revision)
 		return store.graph.Get(revision)
 	}
 
