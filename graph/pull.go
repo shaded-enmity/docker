@@ -34,8 +34,6 @@ func (s *TagStore) CmdPull(job *engine.Job) engine.Status {
 		metaHeaders map[string][]string
 	)
 
-	log.Debugf("1: %q (%q)", localName, ident)
-
 	localName, digest := parsers.ParseRepositoryDigest(localName)
 	if digest != "" {
 		ident = digest
@@ -55,8 +53,6 @@ func (s *TagStore) CmdPull(job *engine.Job) engine.Status {
 			ident = tag
 		}
 	}
-
-	log.Debugf("2: %q (%q)", localName, ident)
 
 	job.GetenvJson("authConfig", authConfig)
 	job.GetenvJson("metaHeaders", &metaHeaders)
@@ -557,8 +553,15 @@ func (s *TagStore) pullV2Tag(eng *engine.Engine, r *registry.Session, out io.Wri
 	if verified && layersDownloaded {
 		out.Write(sf.FormatStatus(repoInfo.CanonicalName+":"+tag, "The image you are pulling has been verified. Important: image verification is a tech preview feature and should not be relied on to provide security."))
 	}
-	if err = s.Set(repoInfo.LocalName, tag, downloads[0].img.ID, true); err != nil {
-		return false, err
+
+	if strings.Contains(tag, ":") {
+		if err = s.SetDigest(tag, repoInfo.LocalName); err != nil {
+			return false, err
+		}
+	} else {
+		if err = s.Set(repoInfo.LocalName, tag, downloads[0].img.ID, true); err != nil {
+			return false, err
+		}
 	}
 	return layersDownloaded, nil
 }
