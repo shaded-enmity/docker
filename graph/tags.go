@@ -11,7 +11,6 @@ import (
 	"strings"
 	"sync"
 
-	log "github.com/Sirupsen/logrus"
 	Digest "github.com/docker/distribution/digest"
 	"github.com/docker/docker/image"
 	"github.com/docker/docker/pkg/common"
@@ -215,9 +214,6 @@ func (store *TagStore) Delete(repoName, tag string) (bool, error) {
 func (store *TagStore) SetDigest(digest, imageId, imageName string) error {
 	store.Lock()
 	defer store.Unlock()
-	if err != nil {
-		return err
-	}
 	if err := store.reload(); err != nil {
 		return err
 	}
