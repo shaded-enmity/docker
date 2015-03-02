@@ -123,13 +123,13 @@ func (store *TagStore) LookupImage(name string) (*image.Image, error) {
 	var img *image.Image
 	var err error
 	if digest != "" {
-		img, err := store.GetImageByDigest(name)
+		img, err = store.GetImageByDigest(name)
 	} else {
 		repos, tag := parsers.ParseRepositoryTag(name)
 		if tag == "" {
 			tag = DEFAULTTAG
 		}
-		img, err := store.GetImage(repos, tag)
+		img, err = store.GetImage(repos, tag)
 	}
 
 	store.Lock()
