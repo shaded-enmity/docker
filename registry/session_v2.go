@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"strconv"
+	"strings"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/registry/v2"
