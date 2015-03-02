@@ -303,10 +303,10 @@ func (store *TagStore) GetImageByDigest(repoNameDigest string) (*image.Image, er
 	if err := store.reload(); err != nil {
 		return nil, err
 	}
-
 	var repo Repository
 	repoName, digest := parsers.ParseRepositoryDigest(repoNameDigest)
 	repoName = registry.NormalizeLocalName(repoName)
+	log.Debugf("rNd: %q - %q", repoName, digest)
 
 	if repo, exists := store.Digests[repoName]; !exists && repo != nil {
 		return nil, nil
