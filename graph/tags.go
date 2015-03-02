@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 
+	log "github.com/Sirupsen/logrus"
 	Digest "github.com/docker/distribution/digest"
 	"github.com/docker/docker/image"
 	"github.com/docker/docker/pkg/common"
