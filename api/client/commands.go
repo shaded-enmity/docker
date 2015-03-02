@@ -1265,10 +1265,11 @@ func (cli *DockerCli) CmdPull(args ...string) error {
 	utils.ParseFlags(cmd, args, true)
 
 	var (
-		v         = url.Values{}
-		remote    = cmd.Arg(0)
-		newRemote = remote
-		tag       string
+		v             = url.Values{}
+		remote        = cmd.Arg(0)
+		newRemote     = remote
+		tag           string
+		taglessRemote string
 	)
 
 	taglessRemote, digest := parsers.ParseRepositoryDigest(remote)
