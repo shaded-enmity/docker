@@ -100,24 +100,13 @@ func (s *TagStore) CmdPull(job *engine.Job) engine.Status {
 
 		log.Debugf("pulling v2 repository with local name %q", repoInfo.LocalName)
 
-		if digest != "" {
-			if err := s.pullV2RepositoryByDigest(job.Eng, r, job.Stdout, repoInfo, ident, sf, job.GetenvBool("parallel")); err == nil {
-				if err = job.Eng.Job("log", "pull", logName, "").Run(); err != nil {
-					log.Errorf("Error logging event 'pull' for %s: %s", logName, err)
-				}
-				return engine.StatusOK
-			} else if err != registry.ErrDoesNotExist && err != ErrV2RegistryUnavailable {
-				log.Errorf("Error from V2 registry: %s", err)
+		if err := s.pullV2Repository(job.Eng, r, job.Stdout, repoInfo, ident, sf, job.GetenvBool("parallel")); err == nil {
+			if err = job.Eng.Job("log", "pull", logName, "").Run(); err != nil {
+				log.Errorf("Error logging event 'pull' for %s: %s", logName, err)
 			}
-		} else {
-			if err := s.pullV2Repository(job.Eng, r, job.Stdout, repoInfo, ident, sf, job.GetenvBool("parallel")); err == nil {
-				if err = job.Eng.Job("log", "pull", logName, "").Run(); err != nil {
-					log.Errorf("Error logging event 'pull' for %s: %s", logName, err)
-				}
-				return engine.StatusOK
-			} else if err != registry.ErrDoesNotExist && err != ErrV2RegistryUnavailable {
-				log.Errorf("Error from V2 registry: %s", err)
-			}
+			return engine.StatusOK
+		} else if err != registry.ErrDoesNotExist && err != ErrV2RegistryUnavailable {
+			log.Errorf("Error from V2 registry: %s", err)
 		}
 
 		log.Debug("image does not exist on v2 registry, falling back to v1")
@@ -401,31 +390,6 @@ type downloadInfo struct {
 	err        chan error
 }
 
-func (s *TagStore) pullV2RepositoryByDigest(eng *engine.Engine, r *registry.Session, out io.Writer, repoInfo *registry.RepositoryInfo, digest string, sf *utils.StreamFormatter, parallel bool) error {
-	endpoint, err := r.V2RegistryEndpoint(repoInfo.Index)
-	if err != nil {
-		if repoInfo.Index.Official {
-			log.Debugf("Unable to pull from V2 registry, falling back to v1: %s", err)
-			return ErrV2RegistryUnavailable
-		}
-		return fmt.Errorf("error getting registry endpoint: %s", err)
-	}
-	auth, err := r.GetV2Authorization(endpoint, repoInfo.RemoteName, true)
-	if err != nil {
-		return fmt.Errorf("error getting authorization: %s", err)
-	}
-	var layersDownloaded bool
-	if downloaded, err := s.pullV2Digest(eng, r, out, endpoint, repoInfo, digest, sf, parallel, auth); err != nil {
-		return err
-	} else if downloaded {
-		layersDownloaded = true
-	}
-
-	requested := repoInfo.CanonicalName + "@" + digest
-	WriteStatus(requested, out, sf, layersDownloaded)
-	return nil
-}
-
 func (s *TagStore) pullV2Repository(eng *engine.Engine, r *registry.Session, out io.Writer, repoInfo *registry.RepositoryInfo, tag string, sf *utils.StreamFormatter, parallel bool) error {
 	endpoint, err := r.V2RegistryEndpoint(repoInfo.Index)
 	if err != nil {
@@ -463,7 +427,6 @@ func (s *TagStore) pullV2Repository(eng *engine.Engine, r *registry.Session, out
 			layersDownloaded = true
 		}
 	}
-
 	requestedTag := repoInfo.CanonicalName
 	if len(tag) > 0 {
 		requestedTag = repoInfo.CanonicalName + ":" + tag
@@ -472,71 +435,47 @@ func (s *TagStore) pullV2Repository(eng *engine.Engine, r *registry.Session, out
 	return nil
 }
 
-func (s *TagStore) pullV2Digest(eng *engine.Engine, r *registry.Session, out io.Writer, endpoint *registry.Endpoint, repoInfo *registry.RepositoryInfo, digest string, sf *utils.StreamFormatter, parallel bool, auth *registry.RequestAuthorization) (bool, error) {
-	log.Debugf("Pulling digest from V2 registry: %q", digest)
-	manifestBytes, err := r.GetV2ImageManifestByDigest(endpoint, repoInfo.RemoteName, digest, auth)
-	if err != nil {
-		return false, err
-	}
-
-	return s.pullV2ByManifest(eng, r, out, endpoint, repoInfo, manifestBytes, digest, sf, parallel, auth)
-}
-
 func (s *TagStore) pullV2Tag(eng *engine.Engine, r *registry.Session, out io.Writer, endpoint *registry.Endpoint, repoInfo *registry.RepositoryInfo, tag string, sf *utils.StreamFormatter, parallel bool, auth *registry.RequestAuthorization) (bool, error) {
 	log.Debugf("Pulling tag from V2 registry: %q", tag)
 	manifestBytes, err := r.GetV2ImageManifest(endpoint, repoInfo.RemoteName, tag, auth)
 	if err != nil {
 		return false, err
 	}
-
-	return s.pullV2ByManifest(eng, r, out, endpoint, repoInfo, manifestBytes, tag, sf, parallel, auth)
-}
-
-func (s *TagStore) pullV2ByManifest(eng *engine.Engine, r *registry.Session, out io.Writer, endpoint *registry.Endpoint, repoInfo *registry.RepositoryInfo, manifestBytes []byte, ident string, sf *utils.StreamFormatter, parallel bool, auth *registry.RequestAuthorization) (bool, error) {
 	manifest, verified, err := s.loadManifest(eng, manifestBytes)
 	if err != nil {
 		return false, fmt.Errorf("error verifying manifest: %s", err)
 	}
-
 	if err := checkValidManifest(manifest); err != nil {
 		return false, err
 	}
-
 	if verified {
-		log.Printf("Image manifest for %s:%s has been verified", repoInfo.CanonicalName, ident)
+		log.Printf("Image manifest for %s:%s has been verified", repoInfo.CanonicalName, tag)
 	}
-	out.Write(sf.FormatStatus(ident, "Pulling from %s", repoInfo.CanonicalName))
-
+	out.Write(sf.FormatStatus(tag, "Pulling from %s", repoInfo.CanonicalName))
 	downloads := make([]downloadInfo, len(manifest.FSLayers))
-
 	for i := len(manifest.FSLayers) - 1; i >= 0; i-- {
 		var (
 			sumStr  = manifest.FSLayers[i].BlobSum
 			imgJSON = []byte(manifest.History[i].V1Compatibility)
 		)
-
 		img, err := image.NewImgJSON(imgJSON)
 		if err != nil {
 			return false, fmt.Errorf("failed to parse json: %s", err)
 		}
 		downloads[i].img = img
-
 		// Check if exists
 		if s.graph.Exists(img.ID) {
 			log.Debugf("Image already exists: %s", img.ID)
 			continue
 		}
-
 		chunks := strings.SplitN(sumStr, ":", 2)
 		if len(chunks) < 2 {
 			return false, fmt.Errorf("expected 2 parts in the sumStr, got %#v", chunks)
 		}
 		sumType, checksum := chunks[0], chunks[1]
 		out.Write(sf.FormatProgress(common.TruncateID(img.ID), "Pulling fs layer", nil))
-
 		downloadFunc := func(di *downloadInfo) error {
 			log.Debugf("pulling blob %q to V1 img %s", sumStr, img.ID)
-
 			if c, err := s.poolAdd("pull", "img:"+img.ID); err != nil {
 				if c != nil {
 					out.Write(sf.FormatProgress(common.TruncateID(img.ID), "Layer already being pulled by another client. Waiting.", nil))
@@ -551,40 +490,31 @@ func (s *TagStore) pullV2ByManifest(eng *engine.Engine, r *registry.Session, out
 				if err != nil {
 					return err
 				}
-
 				r, l, err := r.GetV2ImageBlobReader(endpoint, repoInfo.RemoteName, sumType, checksum, auth)
 				if err != nil {
 					return err
 				}
 				defer r.Close()
-
 				// Wrap the reader with the appropriate TarSum reader.
 				tarSumReader, err := tarsum.NewTarSumForLabel(r, true, sumType)
 				if err != nil {
 					return fmt.Errorf("unable to wrap image blob reader with TarSum: %s", err)
 				}
-
 				io.Copy(tmpFile, utils.ProgressReader(ioutil.NopCloser(tarSumReader), int(l), out, sf, false, common.TruncateID(img.ID), "Downloading"))
-
 				out.Write(sf.FormatProgress(common.TruncateID(img.ID), "Verifying Checksum", nil))
-
 				if finalChecksum := tarSumReader.Sum(nil); !strings.EqualFold(finalChecksum, sumStr) {
 					log.Infof("Image verification failed: checksum mismatch - expected %q but got %q", sumStr, finalChecksum)
 					verified = false
 				}
-
 				out.Write(sf.FormatProgress(common.TruncateID(img.ID), "Download complete", nil))
-
 				log.Debugf("Downloaded %s to tempfile %s", img.ID, tmpFile.Name())
 				di.tmpFile = tmpFile
 				di.length = l
 				di.downloaded = true
 			}
 			di.imgJSON = imgJSON
-
 			return nil
 		}
-
 		if parallel {
 			downloads[i].err = make(chan error)
 			go func(di *downloadInfo) {
@@ -597,7 +527,6 @@ func (s *TagStore) pullV2ByManifest(eng *engine.Engine, r *registry.Session, out
 			}
 		}
 	}
-
 	var layersDownloaded bool
 	for i := len(downloads) - 1; i >= 0; i-- {
 		d := &downloads[i]
@@ -618,7 +547,6 @@ func (s *TagStore) pullV2ByManifest(eng *engine.Engine, r *registry.Session, out
 				if err != nil {
 					return false, err
 				}
-
 				// FIXME: Pool release here for parallel tag pull (ensures any downloads block until fully extracted)
 			}
 			out.Write(sf.FormatProgress(common.TruncateID(d.img.ID), "Pull complete", nil))
@@ -626,23 +554,12 @@ func (s *TagStore) pullV2ByManifest(eng *engine.Engine, r *registry.Session, out
 		} else {
 			out.Write(sf.FormatProgress(common.TruncateID(d.img.ID), "Already exists", nil))
 		}
-
 	}
-
 	if verified && layersDownloaded {
-		out.Write(sf.FormatStatus(repoInfo.CanonicalName+":"+ident, "The image you are pulling has been verified. Important: image verification is a tech preview feature and should not be relied on to provide security."))
+		out.Write(sf.FormatStatus(repoInfo.CanonicalName+":"+tag, "The image you are pulling has been verified. Important: image verification is a tech preview feature and should not be relied on to provide security."))
 	}
-
-	if strings.Contains(ident, ":") {
-		if err = s.SetDigest(ident, repoInfo.LocalName); err != nil {
-			return false, err
-		}
-	} else {
-		if err = s.Set(repoInfo.LocalName, ident, downloads[0].img.ID, true); err != nil {
-			return false, err
-		}
+	if err = s.Set(repoInfo.LocalName, tag, downloads[0].img.ID, true); err != nil {
+		return false, err
 	}
-
 	return layersDownloaded, nil
-
 }
