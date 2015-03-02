@@ -22,7 +22,7 @@ import (
 
 func (s *TagStore) CmdPull(job *engine.Job) engine.Status {
 	if n := len(job.Args); n != 1 && n != 2 {
-		return job.Errorf("Usage: %s IMAGE [TAG]", job.Name)
+		return job.Errorf("Usage: %s IMAGE [:TAG][@DIGEST]", job.Name)
 	}
 
 	var (
@@ -34,7 +34,7 @@ func (s *TagStore) CmdPull(job *engine.Job) engine.Status {
 		metaHeaders map[string][]string
 	)
 
-	log.Debugf("%q // %q // %d", job.Args[0], job.Args[1], len(job.Args))
+	log.Debugf("1: %q (%q)", localName, ident)
 
 	localName, digest := parsers.ParseRepositoryDigest(localName)
 	if digest != "" {
@@ -50,11 +50,13 @@ func (s *TagStore) CmdPull(job *engine.Job) engine.Status {
 	if len(job.Args) > 1 {
 		tag = job.Args[1]
 		if digest != "" {
-			ident = ident + tag
+			ident += tag
 		} else {
 			ident = tag
 		}
 	}
+
+	log.Debugf("2: %q (%q)", localName, ident)
 
 	job.GetenvJson("authConfig", authConfig)
 	job.GetenvJson("metaHeaders", &metaHeaders)
