@@ -40,12 +40,6 @@ type TagStore struct {
 	pushingPool map[string]chan struct{}
 }
 
-//type Digest string
-//type Digest struct {
-//	method	string
-//	value	string
-//}
-
 type DigestRepository map[string]string
 type Repository map[string]string
 
@@ -314,7 +308,9 @@ func (store *TagStore) GetImageByDigest(repoNameDigest string) (*image.Image, er
 	}
 
 	data, _ := json.Marshal(store.Digests)
-	log.Debugf("A: %s %q %s", repoName, digest, string(data))
+	rdata, _ := json.Marshal(store.Digests[repoName])
+
+	log.Debugf("A: %s\n %q\n %s\n %s", repoName, digest, string(data), string(rdata))
 	if revision, exists := repo[digest]; exists {
 		return store.graph.Get(revision)
 	}
