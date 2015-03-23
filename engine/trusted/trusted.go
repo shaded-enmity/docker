@@ -32,6 +32,12 @@ func SetTrustLevel(level TrustLevel) void {
 	Level = level;
 }
 
+// ----------------------------------------------------------------------
+//   DecorateRequest
+//
+//   Executed by a trusted client. Add uid/euid headers to headers passed
+//   in the `headers` argument.
+// 
 func DecorateRequest(headers Headers) (Headers, error) {
 	uid := os.Getuid();
 	euid := os.Geteuid();
@@ -43,6 +49,12 @@ func DecorateRequest(headers Headers) (Headers, error) {
 	return headers, nil
 }
 
+// ----------------------------------------------------------------------
+//   ExtractHeaders
+//
+//   Eecuted by the daemon to extract uid/euid of the user that issued
+//   the specific command.
+//
 func ExtractHeaders(headers Headers) (int, int, error) {
 	var (
 		uid  = -1,
@@ -64,10 +76,22 @@ func ExtractHeaders(headers Headers) (int, int, error) {
 	return (uid, euid, nil)
 }
 
+// ----------------------------------------------------------------------
+//   LabelProcess
+//
+//   Creates a string with SELinux label command given `uid` and target 
+//   `pid`.
+//
 func LabelProcess(uid, pid int) (string, error) {
 	
 }
 
+// ----------------------------------------------------------------------
+//   LabelFile
+//
+//   Creates a string with SELinux label command given `uid` and target
+//   path.
+//
 func LabelFile(uid int, path string) (string, error) {
 
 }
