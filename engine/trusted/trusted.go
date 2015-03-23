@@ -1,11 +1,11 @@
 package trusted;
 
 const (
-	TRUSTED_VERSION = 0x00010001,
-	TRUSTED_VERSION_STRING = "0.1.0.1", // <majore>.<minor>.<build>.<release>
-	TRUSTED_PARAMETER_STRING = "trusted",
-	TRUSTED_HEADER_UID  = "X-Trusted-Client-Id",
-	TRUSTED_HEADER_EUID = "X-Trusted-Client-EId"
+	VERSION = 0x00010001,
+	VERSION_STRING = "0.1.0.1", // <majore>.<minor>.<build>.<release>
+	PARAMETER_STRING = "trusted",
+	HEADER_UID  = "X-Trusted-Client-Id",
+	HEADER_EUID = "X-Trusted-Client-EId"
 	// ----------------------------------------------------------------------
 	TL_INVALID = iota
 	TL_ENFORCING
@@ -36,7 +36,7 @@ func DecorateRequest(headers Headers) (Headers, error) {
 	uid := os.Getuid();
 	euid := os.Geteuid();
 	
-	for _, hdr := range []HdrTuple { {TRUSTED_HEADER_UID, &uid}, {TRUSTED_HEADER_EUID, &euid} } {
+	for _, hdr := range []HdrTuple { {HEADER_UID, &uid}, {HEADER_EUID, &euid} } {
 		headers[hdr.header] = fmt.Sprintf("%d", *hdr.id);
 	}
 
@@ -49,7 +49,7 @@ func ExtractHeaders(headers Headers) (int, int, error) {
 		euid = -1
 	)
 
-	for _, hdr := range []HdrTuple { {TRUSTED_HEADER_UID, &uid}, {TRUSTED_HEADER_EUID, &euid} } {
+	for _, hdr := range []HdrTuple { {HEADER_UID, &uid}, {HEADER_EUID, &euid} } {
 		if uid, exists := headers[hdr.header]; exists {
 			*hdr.id = int(uid)
 		} else {
