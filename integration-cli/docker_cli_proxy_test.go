@@ -8,8 +8,10 @@ import (
 )
 
 func TestCliProxyDisableProxyUnixSock(t *testing.T) {
+	testRequires(t, SameHostDaemon) // test is valid when DOCKER_HOST=unix://..
+
 	cmd := exec.Command(dockerBinary, "info")
-	cmd.Env = appendDockerHostEnv([]string{"HTTP_PROXY=http://127.0.0.1:9999"})
+	cmd.Env = appendBaseEnv([]string{"HTTP_PROXY=http://127.0.0.1:9999"})
 
 	if out, _, err := runCommandWithOutput(cmd); err != nil {
 		t.Fatal(err, out)
@@ -21,6 +23,7 @@ func TestCliProxyDisableProxyUnixSock(t *testing.T) {
 // Can't use localhost here since go has a special case to not use proxy if connecting to localhost
 // See http://golang.org/pkg/net/http/#ProxyFromEnvironment
 func TestCliProxyProxyTCPSock(t *testing.T) {
+	testRequires(t, SameHostDaemon)
 	// get the IP to use to connect since we can't use localhost
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {

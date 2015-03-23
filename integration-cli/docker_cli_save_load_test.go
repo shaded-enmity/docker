@@ -376,9 +376,10 @@ func TestSaveDirectoryPermissions(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	saveCmdFinal := fmt.Sprintf("%s save %s | tar -xf - -C %s", dockerBinary, name, extractionDirectory)
-	saveCmd := exec.Command("bash", "-c", saveCmdFinal)
-	if out, _, err := runCommandWithOutput(saveCmd); err != nil {
+	if out, _, err := runCommandPipelineWithOutput(
+		exec.Command(dockerBinary, "save", name),
+		exec.Command("tar", "-xf", "-", "-C", extractionDirectory),
+	); err != nil {
 		t.Errorf("failed to save and extract image: %s", out)
 	}
 
@@ -389,6 +390,7 @@ func TestSaveDirectoryPermissions(t *testing.T) {
 
 	found := false
 	for _, entry := range dirs {
+		var entriesSansDev []string
 		if entry.IsDir() {
 			layerPath := filepath.Join(extractionDirectory, entry.Name(), "layer.tar")
 
@@ -398,11 +400,16 @@ func TestSaveDirectoryPermissions(t *testing.T) {
 			}
 
 			entries, err := ListTar(f)
+			for _, e := range entries {
+				if !strings.Contains(e, "dev/") {
+					entriesSansDev = append(entriesSansDev, e)
+				}
+			}
 			if err != nil {
 				t.Fatalf("encountered error while listing tar entries: %s", err)
 			}
 
-			if reflect.DeepEqual(entries, layerEntries) || reflect.DeepEqual(entries, layerEntriesAUFS) {
+			if reflect.DeepEqual(entriesSansDev, layerEntries) || reflect.DeepEqual(entriesSansDev, layerEntriesAUFS) {
 				found = true
 				break
 			}

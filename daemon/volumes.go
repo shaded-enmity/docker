@@ -8,14 +8,13 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"syscall"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/daemon/execdriver"
 	"github.com/docker/docker/pkg/chrootarchive"
 	"github.com/docker/docker/pkg/symlink"
+	"github.com/docker/docker/pkg/system"
 	"github.com/docker/docker/volumes"
-	"github.com/docker/libcontainer/label"
 )
 
 type Mount struct {
@@ -89,9 +88,10 @@ func (m *Mount) initialize() error {
 
 		// Make sure we remove these old volumes we don't actually want now.
 		// Ignore any errors here since this is just cleanup, maybe someone volumes-from'd this volume
-		v := m.container.daemon.volumes.Get(hostPath)
-		v.RemoveContainer(m.container.ID)
-		m.container.daemon.volumes.Delete(v.Path)
+		if v := m.container.daemon.volumes.Get(hostPath); v != nil {
+			v.RemoveContainer(m.container.ID)
+			m.container.daemon.volumes.Delete(v.Path)
+		}
 	}
 
 	// This is the full path to container fs + mntToPath
@@ -278,7 +278,7 @@ func (container *Container) applyVolumesFrom() error {
 
 		c, err := container.daemon.Get(id)
 		if err != nil {
-			return err
+			return fmt.Errorf("Could not apply volumes of non-existent container %q.", id)
 		}
 
 		var (
@@ -343,12 +343,6 @@ func (container *Container) setupMounts() error {
 		mounts = append(mounts, execdriver.Mount{Source: container.HostsPath, Destination: "/etc/hosts", Writable: true, Private: true})
 	}
 
-	for _, m := range mounts {
-		if err := label.SetFileLabel(m.Source, container.MountLabel); err != nil {
-			return err
-		}
-	}
-
 	container.command.Mounts = mounts
 	return nil
 }
@@ -391,15 +385,14 @@ func copyExistingContents(source, destination string) error {
 // copyOwnership copies the permissions and uid:gid of the source file
 // into the destination file
 func copyOwnership(source, destination string) error {
-	var stat syscall.Stat_t
-
-	if err := syscall.Stat(source, &stat); err != nil {
+	stat, err := system.Stat(source)
+	if err != nil {
 		return err
 	}
 
-	if err := os.Chown(destination, int(stat.Uid), int(stat.Gid)); err != nil {
+	if err := os.Chown(destination, int(stat.Uid()), int(stat.Gid())); err != nil {
 		return err
 	}
 
-	return os.Chmod(destination, os.FileMode(stat.Mode))
+	return os.Chmod(destination, os.FileMode(stat.Mode()))
 }

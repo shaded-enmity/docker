@@ -191,6 +191,7 @@ func newTestEngine(t Fataler, autorestart bool, root string) *engine.Engine {
 		// otherwise NewDaemon will fail because of conflicting settings.
 		InterContainerCommunication: true,
 		TrustKeyPath:                filepath.Join(root, "key.json"),
+		LogConfig:                   runconfig.LogConfig{Type: "json-file"},
 	}
 	d, err := daemon.NewDaemon(cfg, eng)
 	if err != nil {
@@ -293,7 +294,7 @@ func runContainer(eng *engine.Engine, r *daemon.Daemon, args []string, t *testin
 	if err != nil {
 		return "", err
 	}
-	defer r.Destroy(container)
+	defer r.Rm(container)
 	stdout := container.StdoutPipe()
 	defer stdout.Close()
 

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/stats"
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/vendor/src/code.google.com/p/go/src/pkg/archive/tar"
 )
 
@@ -307,17 +307,43 @@ func TestGetContainerStats(t *testing.T) {
 		t.Fatal("stream was not closed after container was removed")
 	case sr := <-bc:
 		if sr.err != nil {
-			t.Fatal(err)
+			t.Fatal(sr.err)
 		}
 
 		dec := json.NewDecoder(bytes.NewBuffer(sr.body))
-		var s *stats.Stats
+		var s *types.Stats
 		// decode only one object from the stream
 		if err := dec.Decode(&s); err != nil {
 			t.Fatal(err)
 		}
 	}
 	logDone("container REST API - check GET containers/stats")
+}
+
+func TestGetStoppedContainerStats(t *testing.T) {
+	defer deleteAllContainers()
+	var (
+		name   = "statscontainer"
+		runCmd = exec.Command(dockerBinary, "create", "--name", name, "busybox", "top")
+	)
+	out, _, err := runCommandWithOutput(runCmd)
+	if err != nil {
+		t.Fatalf("Error on container creation: %v, output: %q", err, out)
+	}
+
+	go func() {
+		// We'll never get return for GET stats from sockRequest as of now,
+		// just send request and see if panic or error would happen on daemon side.
+		_, err := sockRequest("GET", "/containers/"+name+"/stats", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	// allow some time to send request and let daemon deal with it
+	time.Sleep(1 * time.Second)
+
+	logDone("container REST API - check GET stopped containers/stats")
 }
 
 func TestBuildApiDockerfilePath(t *testing.T) {
@@ -351,6 +377,110 @@ func TestBuildApiDockerfilePath(t *testing.T) {
 	}
 
 	logDone("container REST API - check build w/bad Dockerfile path")
+}
+
+func TestBuildApiDockerFileRemote(t *testing.T) {
+	server, err := fakeStorage(map[string]string{
+		"testD": `FROM busybox
+COPY * /tmp/
+RUN find / -name ba*
+RUN find /tmp/`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer server.Close()
+
+	buf, err := sockRequestRaw("POST", "/build?dockerfile=baz&remote="+server.URL()+"/testD", nil, "application/json")
+	if err != nil {
+		t.Fatalf("Build failed: %s", err)
+	}
+
+	// Make sure Dockerfile exists.
+	// Make sure 'baz' doesn't exist ANYWHERE despite being mentioned in the URL
+	out := string(buf)
+	if !strings.Contains(out, "/tmp/Dockerfile") ||
+		strings.Contains(out, "baz") {
+		t.Fatalf("Incorrect output: %s", out)
+	}
+
+	logDone("container REST API - check build with -f from remote")
+}
+
+func TestBuildApiLowerDockerfile(t *testing.T) {
+	git, err := fakeGIT("repo", map[string]string{
+		"dockerfile": `FROM busybox
+RUN echo from dockerfile`,
+	}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer git.Close()
+
+	buf, err := sockRequestRaw("POST", "/build?remote="+git.RepoURL, nil, "application/json")
+	if err != nil {
+		t.Fatalf("Build failed: %s\n%q", err, buf)
+	}
+
+	out := string(buf)
+	if !strings.Contains(out, "from dockerfile") {
+		t.Fatalf("Incorrect output: %s", out)
+	}
+
+	logDone("container REST API - check build with lower dockerfile")
+}
+
+func TestBuildApiBuildGitWithF(t *testing.T) {
+	git, err := fakeGIT("repo", map[string]string{
+		"baz": `FROM busybox
+RUN echo from baz`,
+		"Dockerfile": `FROM busybox
+RUN echo from Dockerfile`,
+	}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer git.Close()
+
+	// Make sure it tries to 'dockerfile' query param value
+	buf, err := sockRequestRaw("POST", "/build?dockerfile=baz&remote="+git.RepoURL, nil, "application/json")
+	if err != nil {
+		t.Fatalf("Build failed: %s\n%q", err, buf)
+	}
+
+	out := string(buf)
+	if !strings.Contains(out, "from baz") {
+		t.Fatalf("Incorrect output: %s", out)
+	}
+
+	logDone("container REST API - check build from git w/F")
+}
+
+func TestBuildApiDoubleDockerfile(t *testing.T) {
+	testRequires(t, UnixCli) // dockerfile overwrites Dockerfile on Windows
+	git, err := fakeGIT("repo", map[string]string{
+		"Dockerfile": `FROM busybox
+RUN echo from Dockerfile`,
+		"dockerfile": `FROM busybox
+RUN echo from dockerfile`,
+	}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer git.Close()
+
+	// Make sure it tries to 'dockerfile' query param value
+	buf, err := sockRequestRaw("POST", "/build?remote="+git.RepoURL, nil, "application/json")
+	if err != nil {
+		t.Fatalf("Build failed: %s", err)
+	}
+
+	out := string(buf)
+	if !strings.Contains(out, "from Dockerfile") {
+		t.Fatalf("Incorrect output: %s", out)
+	}
+
+	logDone("container REST API - check build with two dockerfiles")
 }
 
 func TestBuildApiDockerfileSymlink(t *testing.T) {

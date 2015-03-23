@@ -109,8 +109,7 @@ with several powerful functionalities:
 ### What is different between a Docker container and a VM?
 
 There's a great StackOverflow answer [showing the differences](
-http://stackoverflow.com/questions/16047306/how-is-docker-io-different-from-a-
-normal-virtual-machine).
+http://stackoverflow.com/questions/16047306/how-is-docker-io-different-from-a-normal-virtual-machine).
 
 ### Do I lose my data when the container exits?
 
@@ -149,7 +148,7 @@ Linux:
  - Ubuntu 12.04, 13.04 et al 
  - Fedora 19/20+ 
  - RHEL 6.5+ 
- - Centos 6+ 
+ - CentOS 6+ 
  - Gentoo 
  - ArchLinux 
  - openSUSE 12.3+ 
@@ -170,8 +169,7 @@ You can learn about the project's security policy
 ### Why do I need to sign my commits to Docker with the DCO?
 
 Please read [our blog post](
-http://blog.docker.com/2014/01/docker-code-contributions-require-developer-
-certificate-of-origin/) on the introduction of the DCO.
+http://blog.docker.com/2014/01/docker-code-contributions-require-developer-certificate-of-origin/) on the introduction of the DCO.
 
 ### When building an image, should I prefer system libraries or bundled ones?
 

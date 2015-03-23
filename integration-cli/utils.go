@@ -42,6 +42,18 @@ func processExitCode(err error) (exitCode int) {
 	return
 }
 
+func IsKilled(err error) bool {
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		sys := exitErr.ProcessState.Sys()
+		status, ok := sys.(syscall.WaitStatus)
+		if !ok {
+			return false
+		}
+		return status.Signaled() && status.Signal() == os.Kill
+	}
+	return false
+}
+
 func runCommandWithOutput(cmd *exec.Cmd) (output string, exitCode int, err error) {
 	exitCode = 0
 	out, err := cmd.CombinedOutput()
@@ -65,27 +77,49 @@ func runCommandWithStdoutStderr(cmd *exec.Cmd) (stdout string, stderr string, ex
 	return
 }
 
+func runCommandWithOutputForDuration(cmd *exec.Cmd, duration time.Duration) (output string, exitCode int, timedOut bool, err error) {
+	var outputBuffer bytes.Buffer
+	if cmd.Stdout != nil {
+		err = errors.New("cmd.Stdout already set")
+		return
+	}
+	cmd.Stdout = &outputBuffer
+
+	if cmd.Stderr != nil {
+		err = errors.New("cmd.Stderr already set")
+		return
+	}
+	cmd.Stderr = &outputBuffer
+
+	done := make(chan error)
+	go func() {
+		exitErr := cmd.Run()
+		exitCode = processExitCode(exitErr)
+		done <- exitErr
+	}()
+
+	select {
+	case <-time.After(duration):
+		killErr := cmd.Process.Kill()
+		if killErr != nil {
+			fmt.Printf("failed to kill (pid=%d): %v\n", cmd.Process.Pid, killErr)
+		}
+		timedOut = true
+		break
+	case err = <-done:
+		break
+	}
+	output = outputBuffer.String()
+	return
+}
+
 var ErrCmdTimeout = fmt.Errorf("command timed out")
 
 func runCommandWithOutputAndTimeout(cmd *exec.Cmd, timeout time.Duration) (output string, exitCode int, err error) {
-	done := make(chan error)
-	go func() {
-		output, exitCode, err = runCommandWithOutput(cmd)
-		if err != nil || exitCode != 0 {
-			done <- fmt.Errorf("failed to run command: %s", err)
-			return
-		}
-		done <- nil
-	}()
-	select {
-	case <-time.After(timeout):
-		killFailed := cmd.Process.Kill()
-		if killFailed == nil {
-			fmt.Printf("failed to kill (pid=%d): %v\n", cmd.Process.Pid, err)
-		}
+	var timedOut bool
+	output, exitCode, timedOut, err = runCommandWithOutputForDuration(cmd, timeout)
+	if timedOut {
 		err = ErrCmdTimeout
-	case <-done:
-		break
 	}
 	return
 }
@@ -305,4 +339,18 @@ func consumeWithSpeed(reader io.Reader, chunkSize int, interval time.Duration, s
 			time.Sleep(interval)
 		}
 	}
+}
+
+// Parses 'procCgroupData', which is output of '/proc/<pid>/cgroup', and returns
+// a map which cgroup name as key and path as value.
+func parseCgroupPaths(procCgroupData string) map[string]string {
+	cgroupPaths := map[string]string{}
+	for _, line := range strings.Split(procCgroupData, "\n") {
+		parts := strings.Split(line, ":")
+		if len(parts) != 3 {
+			continue
+		}
+		cgroupPaths[parts[1]] = parts[2]
+	}
+	return cgroupPaths
 }

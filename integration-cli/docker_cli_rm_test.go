@@ -8,6 +8,7 @@ import (
 )
 
 func TestRmContainerWithRemovedVolume(t *testing.T) {
+	testRequires(t, SameHostDaemon)
 	defer deleteAllContainers()
 
 	cmd := exec.Command(dockerBinary, "run", "--name", "losemyvolumes", "-v", "/tmp/testing:/test", "busybox", "true")
