@@ -1286,7 +1286,7 @@ func makeHttpHandler(eng *engine.Engine, logging bool, localMethod string, local
 			return
 		}
 
-		if raw, err := json.Marshal(req); err == nil {
+		if raw, err := json.Marshal(r); err == nil {
 			log.Printf("Raw request: %q", string(raw))
 		}
 
