@@ -69,14 +69,13 @@ func DecorateRequest(request *http.Request) error {
 //
 func ExtractHeaders(headers Headers) (int, int, error) {
 	var (
-		uid   = -1
-		euid  = -1
-		strid = ""
+		uid  = -1
+		euid = -1
 	)
 
 	for _, hdr := range []HdrTuple{{HEADER_UID, &uid}, {HEADER_EUID, &euid}} {
 		if strid, exists := headers[hdr.header]; exists {
-			num, err := strconv.Atoi(strid)
+			num, _ := strconv.Atoi(strid)
 			*hdr.id = num
 		} else {
 			if GetTrustLevel() == TL_ENFORCING {
