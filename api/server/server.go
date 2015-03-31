@@ -1420,6 +1420,11 @@ func ServeRequest(eng *engine.Engine, apiversion version.Version, w http.Respons
 	router := createRouter(eng, false, true, "", "")
 	// Insert APIVERSION into the request as a convenience
 	req.URL.Path = fmt.Sprintf("/v%s%s", apiversion, req.URL.Path)
+
+	if raw, err := json.Marshal(req); err == nil {
+		log.Printf("Raw request: %q", string(raw))
+	}
+
 	router.ServeHTTP(w, req)
 }
 
