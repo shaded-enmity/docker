@@ -139,7 +139,7 @@ func (cli *DockerCli) streamHelper(method, path string, setRawTerminal bool, in 
 	}
 
 	if err := trusted.DecorateRequest(req); err != nil {
-		return nil, -1, fmt.Errorf("An error occured setting trusted client")
+		return fmt.Errorf("An error occured setting trusted client")
 	}
 
 	req.Header.Set("User-Agent", "Docker-Client/"+dockerversion.VERSION)
