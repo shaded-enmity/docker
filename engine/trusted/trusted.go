@@ -5,6 +5,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"net/http"
 	"os"
+	"strconv"
 )
 
 const (
@@ -75,12 +76,13 @@ func ExtractHeaders(headers Headers) (int, int, error) {
 
 	for _, hdr := range []HdrTuple{{HEADER_UID, &uid}, {HEADER_EUID, &euid}} {
 		if strid, exists := headers[hdr.header]; exists {
-			*hdr.id = int(strid)
+			num, err := strconv.Atoi(strid)
+			*hdr.id = num
 		} else {
 			if GetTrustLevel() == TL_ENFORCING {
 				return uid, euid, fmt.Errorf("Header %q not found!", hdr.header)
 			} else {
-				log.Logf("[trusted] Header %q not found!", hdr.header)
+				log.Printf("[trusted] Header %q not found!", hdr.header)
 			}
 		}
 	}
