@@ -67,14 +67,14 @@ func DecorateRequest(request *http.Request) error {
 //   Eecuted by the daemon to extract uid/euid of the user that issued
 //   the specific command.
 //
-func ExtractHeaders(headers Headers) (int, int, error) {
+func ExtractHeaders(request *http.Request) (int, int, error) {
 	var (
 		uid  = -1
 		euid = -1
 	)
 
 	for _, hdr := range []HdrTuple{{HEADER_UID, &uid}, {HEADER_EUID, &euid}} {
-		if strid, exists := headers[hdr.header]; exists {
+		if strid := request.Header.Get(hdr.header); strid != nil {
 			num, _ := strconv.Atoi(strid)
 			*hdr.id = num
 		} else {
