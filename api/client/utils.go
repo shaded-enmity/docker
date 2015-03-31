@@ -19,6 +19,7 @@ import (
 	"github.com/docker/docker/api"
 	"github.com/docker/docker/autogen/dockerversion"
 	"github.com/docker/docker/engine"
+	"github.com/docker/docker/engine/trusted"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/docker/pkg/term"
@@ -84,6 +85,11 @@ func (cli *DockerCli) call(method, path string, data interface{}, passAuthInfo b
 		}
 	}
 	req.Header.Set("User-Agent", "Docker-Client/"+dockerversion.VERSION)
+
+	if err := trusted.DecorateRequest(req); err != nil {
+		return nil, -1, fmt.Errorf("An error occured setting trusted client")
+	}
+
 	req.URL.Host = cli.addr
 	req.URL.Scheme = cli.scheme
 	if data != nil {

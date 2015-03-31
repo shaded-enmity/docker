@@ -2,6 +2,7 @@ package trusted
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 )
 
@@ -11,6 +12,8 @@ const (
 	PARAMETER_STRING = "trusted"
 	HEADER_UID       = "X-Trusted-Client-Id"
 	HEADER_EUID      = "X-Trusted-Client-EId"
+	CONTAINER_LABEL  = "system_u:system_r:container_t:s0-s0:c0.c%d"
+	IMAGE_LABEL      = "system_u:system_r:image_t:s0-s0:c0.c%d"
 	// ----------------------------------------------------------------------
 	TL_INVALID = iota
 	TL_ENFORCING
@@ -26,7 +29,7 @@ type HdrTuple struct {
 }
 
 var (
-	Level = TL_ENFORCING
+	Level = TL_PERMISSIVE
 )
 
 func GetTrustLevel() TrustLevel {
@@ -43,15 +46,16 @@ func SetTrustLevel(level TrustLevel) void {
 //   Executed by a trusted client. Add uid/euid headers to headers passed
 //   in the `headers` argument.
 //
-func DecorateRequest(headers Headers) (Headers, error) {
+
+func DecorateRequest(request *http.Request) error {
 	uid := os.Getuid()
 	euid := os.Geteuid()
 
 	for _, hdr := range []HdrTuple{{HEADER_UID, &uid}, {HEADER_EUID, &euid}} {
-		headers[hdr.header] = fmt.Sprintf("%d", *hdr.id)
+		request.Header[hdr.header] = fmt.Sprintf("%d", *hdr.id)
 	}
 
-	return headers, nil
+	return nil
 }
 
 // ----------------------------------------------------------------------
@@ -73,7 +77,7 @@ func ExtractHeaders(headers Headers) (int, int, error) {
 			if GetTrustLevel() == TL_ENFORCING {
 				return uid, euid, fmt.Errorf("Header %q not found!", hdr.header)
 			} else {
-				log.Logf("[trusted] Header %q not found!")
+				log.Logf("[trusted] Header %q not found!", hdr.header)
 			}
 		}
 	}
@@ -88,7 +92,10 @@ func ExtractHeaders(headers Headers) (int, int, error) {
 //   `pid`.
 //
 func LabelProcess(uid, pid int) (string, error) {
-
+	var (
+		label = CONTAINER_LABEL
+	)
+	return label, nil
 }
 
 // ----------------------------------------------------------------------
@@ -98,7 +105,10 @@ func LabelProcess(uid, pid int) (string, error) {
 //   path.
 //
 func LabelFile(uid int, path string) (string, error) {
-
+	var (
+		label = IMAGE_LABEL
+	)
+	return label, nil
 }
 
 func CheckProcess(uid, pid int) error {
