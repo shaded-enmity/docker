@@ -34,11 +34,11 @@ var (
 )
 
 func GetTrustLevel() TrustLevel {
-	return TrustLevel{Level}
+	return TrustLevel(Level)
 }
 
 func SetTrustLevel(level TrustLevel) error {
-	Level = int{level}
+	Level = int(level)
 	return nil
 }
 
@@ -68,13 +68,14 @@ func DecorateRequest(request *http.Request) error {
 //
 func ExtractHeaders(headers Headers) (int, int, error) {
 	var (
-		uid  = ""
-		euid = ""
+		uid   = -1
+		euid  = -1
+		strid = ""
 	)
 
 	for _, hdr := range []HdrTuple{{HEADER_UID, &uid}, {HEADER_EUID, &euid}} {
-		if uid, exists := headers[hdr.header]; exists {
-			*hdr.id = int(uid)
+		if strid, exists := headers[hdr.header]; exists {
+			*hdr.id = int(strid)
 		} else {
 			if GetTrustLevel() == TL_ENFORCING {
 				return uid, euid, fmt.Errorf("Header %q not found!", hdr.header)
