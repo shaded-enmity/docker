@@ -74,7 +74,7 @@ func ExtractHeaders(request *http.Request) (int, int, error) {
 	)
 
 	for _, hdr := range []HdrTuple{{HEADER_UID, &uid}, {HEADER_EUID, &euid}} {
-		if strid := request.Header.Get(hdr.header); strid != nil {
+		if strid := request.Header.Get(hdr.header); strid != "" {
 			num, _ := strconv.Atoi(strid)
 			*hdr.id = num
 		} else {
