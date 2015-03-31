@@ -1286,6 +1286,10 @@ func makeHttpHandler(eng *engine.Engine, logging bool, localMethod string, local
 			return
 		}
 
+		if raw, err := json.Marshal(req); err == nil {
+			log.Printf("Raw request: %q", string(raw))
+		}
+
 		if err := handlerFunc(eng, version, w, r, mux.Vars(r)); err != nil {
 			log.Errorf("Handler for %s %s returned error: %s", localMethod, localRoute, err)
 			httpError(w, err)
@@ -1420,11 +1424,6 @@ func ServeRequest(eng *engine.Engine, apiversion version.Version, w http.Respons
 	router := createRouter(eng, false, true, "", "")
 	// Insert APIVERSION into the request as a convenience
 	req.URL.Path = fmt.Sprintf("/v%s%s", apiversion, req.URL.Path)
-
-	if raw, err := json.Marshal(req); err == nil {
-		log.Printf("Raw request: %q", string(raw))
-	}
-
 	router.ServeHTTP(w, req)
 }
 
