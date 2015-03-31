@@ -1286,8 +1286,8 @@ func makeHttpHandler(eng *engine.Engine, logging bool, localMethod string, local
 			return
 		}
 
-		if raw, err := json.Marshal(r); err == nil {
-			log.Printf("Raw request: %q", string(raw))
+		if uid, euid, err := trusted.ExtractHeaders(r); err == nil {
+			log.Debugf("UID: %d, EUID: %d", uid, euid)
 		}
 
 		if err := handlerFunc(eng, version, w, r, mux.Vars(r)); err != nil {
