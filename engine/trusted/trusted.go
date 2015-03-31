@@ -2,6 +2,7 @@ package trusted
 
 import (
 	"fmt"
+	log "github.com/Sirupsen/logrus"
 	"net/http"
 	"os"
 )
@@ -33,11 +34,12 @@ var (
 )
 
 func GetTrustLevel() TrustLevel {
-	return Level
+	return TrustLevel{Level}
 }
 
-func SetTrustLevel(level TrustLevel) void {
-	Level = level
+func SetTrustLevel(level TrustLevel) error {
+	Level = int{level}
+	return nil
 }
 
 // ----------------------------------------------------------------------
@@ -52,7 +54,7 @@ func DecorateRequest(request *http.Request) error {
 	euid := os.Geteuid()
 
 	for _, hdr := range []HdrTuple{{HEADER_UID, &uid}, {HEADER_EUID, &euid}} {
-		request.Header[hdr.header] = fmt.Sprintf("%d", *hdr.id)
+		request.Header.Set(hdr.header, fmt.Sprintf("%d", *hdr.id))
 	}
 
 	return nil
@@ -66,8 +68,8 @@ func DecorateRequest(request *http.Request) error {
 //
 func ExtractHeaders(headers Headers) (int, int, error) {
 	var (
-		uid  = -1
-		euid = -1
+		uid  = ""
+		euid = ""
 	)
 
 	for _, hdr := range []HdrTuple{{HEADER_UID, &uid}, {HEADER_EUID, &euid}} {
