@@ -45,7 +45,7 @@ func (l *defaultListener) Accept() (net.Conn, error) {
 		switch v := l.wrapped.(type) {
 		default:
 			log.Printf("unexpected type %T", v)
-		case net.UnixListener:
+		case *net.UnixListener:
 			log.Printf("unix socket %T", v)
 		}
 		return conn, err
