@@ -42,11 +42,11 @@ func (l *defaultListener) Accept() (net.Conn, error) {
 	// start returning connections
 	if l.ready {
 		conn, err := l.wrapped.Accept()
-		switch v := conn.(type) {
+		switch v := l.wrapped.(type) {
 		default:
 			log.Printf("unexpected type %T", v)
-		case net.UnixConn:
-			log.Printf("unix socket %s", string(conn.conn.fd.Fd()))
+		case net.UnixListener:
+			log.Printf("unix socket %T", v)
 		}
 		return conn, err
 	}
