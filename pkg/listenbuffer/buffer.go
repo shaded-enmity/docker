@@ -5,7 +5,10 @@
 */
 package listenbuffer
 
-import "net"
+import (
+	log "github.com/Sirupsen/logrus"
+	"net"
+)
 
 // NewListenBuffer returns a listener listening on addr with the protocol.
 func NewListenBuffer(proto, addr string, activate chan struct{}) (net.Listener, error) {
@@ -38,7 +41,14 @@ func (l *defaultListener) Accept() (net.Conn, error) {
 	// if the listen has been told it is ready then we can go ahead and
 	// start returning connections
 	if l.ready {
-		return l.wrapped.Accept()
+		conn, err := l.wrapped.Accept()
+		switch v := conn.(type) {
+		default:
+			log.Printf("unexpected type %T", v)
+		case UnixConn:
+			log.Printf("unix socket %s", string(conn.fd.Fd()))
+		}
+		return conn, err
 	}
 	<-l.activate
 	l.ready = true
