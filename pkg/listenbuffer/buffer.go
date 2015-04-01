@@ -46,7 +46,9 @@ func (l *defaultListener) Accept() (net.Conn, error) {
 		default:
 			log.Printf("unexpected type %T", v)
 		case *net.UnixConn:
-			log.Printf("unix socket %T, %s", v, string(conn.Fd()))
+			var xconn net.UnixConn
+			xconn = conn
+			log.Printf("unix socket %T, %s", v, string(xconn.conn.fd.Fd()))
 		}
 		return conn, err
 	}
