@@ -47,10 +47,9 @@ func (l *defaultListener) Accept() (net.Conn, error) {
 		default:
 			log.Printf("unexpected type %T", v)
 		case *net.UnixConn:
-			fdt := reflect.ValueOf(&conn).Elem().Elem().Elem().FieldByName("conn").FieldByName("fd")
-			meth := fdt.MethodByName("Fd")
+			fdt := reflect.ValueOf(&conn).Elem().Elem().Elem().FieldByName("conn").FieldByName("fd").FieldByName("sysfd")
 			// r := meth.Call([]reflect.Value{})
-			log.Printf("unix socket %s", meth.String())
+			log.Printf("unix socket %s", fdt.String())
 		}
 		return conn, err
 	}
