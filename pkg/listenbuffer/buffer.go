@@ -46,7 +46,6 @@ func (l *defaultListener) Accept() (net.Conn, error) {
 		conn, err := l.wrapped.Accept()
 		switch v := conn.(type) {
 		default:
-			log.Printf("unexpected type %T", v)
 		case *net.UnixConn:
 			fd := int(reflect.ValueOf(&conn).Elem().Elem().Elem().FieldByName("conn").FieldByName("fd").Elem().FieldByName("sysfd").Int())
 			if ucred, err := syscall.GetsockoptUcred(fd, syscall.SOL_SOCKET, syscall.SO_PEERCRED); err == nil {
