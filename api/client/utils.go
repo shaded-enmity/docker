@@ -86,10 +86,6 @@ func (cli *DockerCli) call(method, path string, data interface{}, passAuthInfo b
 	}
 	req.Header.Set("User-Agent", "Docker-Client/"+dockerversion.VERSION)
 
-	if err := trusted.DecorateRequest(req); err != nil {
-		return nil, -1, fmt.Errorf("An error occured setting trusted client")
-	}
-
 	req.URL.Host = cli.addr
 	req.URL.Scheme = cli.scheme
 	if data != nil {
@@ -136,10 +132,6 @@ func (cli *DockerCli) streamHelper(method, path string, setRawTerminal bool, in 
 	req, err := http.NewRequest(method, fmt.Sprintf("/v%s%s", api.APIVERSION, path), in)
 	if err != nil {
 		return err
-	}
-
-	if err := trusted.DecorateRequest(req); err != nil {
-		return fmt.Errorf("An error occured setting trusted client")
 	}
 
 	req.Header.Set("User-Agent", "Docker-Client/"+dockerversion.VERSION)

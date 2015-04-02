@@ -1294,17 +1294,7 @@ func makeHttpHandler(eng *engine.Engine, logging bool, localMethod string, local
 		if ucon, ok := conn.(listenbuffer.CredConn); ok {
 			log.Printf("uid: %d, gid: %d, pid: %d", ucon.Cred.Uid, ucon.Cred.Gid, ucon.Cred.Pid)
 		}
-		/*
-			switch v := conn.(type) {
-			default:
-			case listenbuffer.CredConn:
-				var ucon listenbuffer.CredConn = conn
-			}
 
-			if uid, euid, err := trusted.ExtractHeaders(r); err == nil {
-				log.Debugf("UID: %d, EUID: %d", uid, euid)
-			}
-		*/
 		if err := handlerFunc(eng, version, w, r, mux.Vars(r)); err != nil {
 			log.Errorf("Handler for %s %s returned error: %s", localMethod, localRoute, err)
 			httpError(w, err)
