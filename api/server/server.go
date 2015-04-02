@@ -1288,7 +1288,7 @@ func makeHttpHandler(eng *engine.Engine, logging bool, localMethod string, local
 			return
 		}
 
-		log.Printf("Reflected: %p", reflect.ValueOf(&w).Elem().Elem().Elem().FieldByName("conn").Elem().FieldByName("rwc").Ptr())
+		log.Printf("Reflected: %p", reflect.ValueOf(&w).Elem().Elem().Elem().FieldByName("conn").Elem().FieldByName("rwc").Pointer())
 		/*conn, _, _ := w.(http.Hijacker).Hijack()
 		switch v := conn.(type) {
 		default:
