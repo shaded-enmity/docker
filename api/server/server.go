@@ -1290,15 +1290,13 @@ func makeHttpHandler(eng *engine.Engine, logging bool, localMethod string, local
 			return
 		}
 
-		//log.Printf("Reflected: %p", reflect.ValueOf(&w).Elem().Elem().Elem().FieldByName("conn").Elem().FieldByName("rwc").Addr().Pointer())
 		cptr := reflect.ValueOf(&w).Elem().Elem().Elem().FieldByName("conn").Elem().FieldByName("rwc").Addr().Pointer()
-		var conn net.Conn = *(*net.Conn)(unsafe.Pointer(cptr))
-		log.Printf("%T", conn)
-		/*conn, _, _ := w.(http.Hijacker).Hijack()*/
+		conn := *(*net.Conn)(unsafe.Pointer(cptr))
 		switch v := conn.(type) {
 		default:
 		case listenbuffer.CredConn:
-			log.Printf("hijacked %T", v)
+			var ucon listenbuffer.CredConn = conn
+			log.Printf("uid: %d, gid: %d, pid: %d", ucon.cred.Uid, ucon.cred.Gid, ucon.cred.Pid)
 		}
 
 		if uid, euid, err := trusted.ExtractHeaders(r); err == nil {
