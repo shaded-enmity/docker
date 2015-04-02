@@ -37,6 +37,8 @@ import (
 	"github.com/docker/docker/pkg/version"
 	"github.com/docker/docker/registry"
 	"github.com/docker/docker/utils"
+
+	"unsafe"
 )
 
 var (
@@ -1289,9 +1291,8 @@ func makeHttpHandler(eng *engine.Engine, logging bool, localMethod string, local
 		}
 
 		//log.Printf("Reflected: %p", reflect.ValueOf(&w).Elem().Elem().Elem().FieldByName("conn").Elem().FieldByName("rwc").Addr().Pointer())
-		var cptr net.Conn
-		cptr = reflect.ValueOf(&w).Elem().Elem().Elem().FieldByName("conn").Elem().FieldByName("rwc").Addr().Pointer()
-		log.Printf("%s", cptr)
+		cptr := reflect.ValueOf(&w).Elem().Elem().Elem().FieldByName("conn").Elem().FieldByName("rwc").Addr().Pointer()
+		log.Printf("%s", unsafe.Unreflect(net.Conn{}, cptr))
 		/*conn, _, _ := w.(http.Hijacker).Hijack()
 		switch v := conn.(type) {
 		default:
