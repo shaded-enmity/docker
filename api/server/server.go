@@ -203,6 +203,7 @@ func postAuth(eng *engine.Engine, version version.Version, w http.ResponseWriter
 
 func getVersion(eng *engine.Engine, version version.Version, w http.ResponseWriter, r *http.Request, vars map[string]string) error {
 	w.Header().Set("Content-Type", "application/json")
+	log.Printf(string(json.Marshal(vars)))
 	eng.ServeHTTP(w, r)
 	return nil
 }
@@ -1293,7 +1294,9 @@ func makeHttpHandler(eng *engine.Engine, logging bool, localMethod string, local
 		cptr := reflect.ValueOf(&w).Elem().Elem().Elem().FieldByName("conn").Elem().FieldByName("rwc").Addr().Pointer()
 		conn := *(*net.Conn)(unsafe.Pointer(cptr))
 		if ucon, ok := conn.(listenbuffer.CredConn); ok {
-			log.Printf("%s %s [U: %d G: %d P: %d]", localMethod, r.RequestURI, ucon.Cred.Uid, ucon.Cred.Gid, ucon.Cred.Pid)
+			if logging {
+				log.Infof("%s %s [U: %d G: %d P: %d]", localMethod, r.RequestURI, ucon.Cred.Uid, ucon.Cred.Gid, ucon.Cred.Pid)
+			}
 			vm["ruid"] = strconv.Itoa(int(ucon.Cred.Uid))
 			vm["rgid"] = strconv.Itoa(int(ucon.Cred.Gid))
 			vm["rpid"] = strconv.Itoa(int(ucon.Cred.Pid))
