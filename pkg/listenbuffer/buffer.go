@@ -27,7 +27,11 @@ continue to block until a client connects or an error occurs.
 */
 package listenbuffer
 
-import "net"
+import (
+	"net"
+	"reflect"
+	"syscall"
+)
 
 // NewListenBuffer returns a net.Listener listening on addr with the protocol
 // passed. The channel passed is used to activate the listenbuffer when the
@@ -61,6 +65,11 @@ func (l *defaultListener) Addr() net.Addr {
 	return l.wrapped.Addr()
 }
 
+type CredConn struct {
+        net.Conn
+        Cred *syscall.Ucred
+}
+
 // Accept returns a client connection on the wrapped socket if the listen buffer
 // has been activated. To active the listenbuffer the activation channel passed
 // to NewListenBuffer must have been closed or sent an event.
@@ -68,7 +77,16 @@ func (l *defaultListener) Accept() (net.Conn, error) {
 	// if the listen has been told it is ready then we can go ahead and
 	// start returning connections
 	if l.ready {
-		return l.wrapped.Accept()
+                conn, err := l.wrapped.Accept()
+                if _, ok := conn.(*net.UnixConn); ok {
+                        fd := int(reflect.ValueOf(&conn).Elem().Elem().Elem().FieldByName("conn").FieldByName("fd").Elem().FieldByName("sysfd").Int())
+                        if ucred, err := syscall.GetsockoptUcred(fd, syscall.SOL_SOCKET, syscall.SO_PEERCRED); err == nil {
+                                return CredConn{conn, ucred}, nil
+                        } else {
+                                return nil, err
+                        }
+                }
+                return conn, err
 	}
 	<-l.activate
 	l.ready = true

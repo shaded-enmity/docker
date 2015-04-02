@@ -13,6 +13,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"reflect"
 
 	"code.google.com/p/go.net/websocket"
 	"github.com/gorilla/mux"
@@ -24,11 +25,13 @@ import (
 	"github.com/docker/docker/daemon/networkdriver/bridge"
 	"github.com/docker/docker/engine"
 	"github.com/docker/docker/pkg/parsers"
+	"github.com/docker/docker/pkg/listenbuffer"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/docker/pkg/streamformatter"
 	"github.com/docker/docker/pkg/version"
 	"github.com/docker/docker/registry"
 	"github.com/docker/docker/utils"
+	"unsafe"
 )
 
 var (
@@ -192,6 +195,8 @@ func postAuth(eng *engine.Engine, version version.Version, w http.ResponseWriter
 
 func getVersion(eng *engine.Engine, version version.Version, w http.ResponseWriter, r *http.Request, vars map[string]string) error {
 	w.Header().Set("Content-Type", "application/json")
+        b, _ := json.Marshal(vars)
+        log.Printf("vars: %s", string(b))
 	eng.ServeHTTP(w, r)
 	return nil
 }
@@ -1289,10 +1294,22 @@ func makeHttpHandler(eng *engine.Engine, logging bool, localMethod string, local
 			return
 		}
 
-		if err := handlerFunc(eng, version, w, r, mux.Vars(r)); err != nil {
-			logrus.Errorf("Handler for %s %s returned error: %s", localMethod, localRoute, err)
-			httpError(w, err)
-		}
+                vm := mux.Vars(r)
+                cptr := reflect.ValueOf(&w).Elem().Elem().Elem().FieldByName("conn").Elem().FieldByName("rwc").Addr().Pointer()
+                conn := *(*net.Conn)(unsafe.Pointer(cptr))
+                if ucon, ok := conn.(listenbuffer.CredConn); ok {
+                        if logging {
+                                log.Infof("%s %s [U: %d G: %d P: %d]", localMethod, r.RequestURI, ucon.Cred.Uid, ucon.Cred.Gid, ucon.Cred.Pid)
+                        }
+                        vm["ruid"] = strconv.Itoa(int(ucon.Cred.Uid))
+                        vm["rgid"] = strconv.Itoa(int(ucon.Cred.Gid))
+                        vm["rpid"] = strconv.Itoa(int(ucon.Cred.Pid))
+                }
+
+                if err := handlerFunc(eng, version, w, r, vm); err != nil {
+                        log.Errorf("Handler for %s %s returned error: %s", localMethod, localRoute, err)
+                        httpError(w, err)
+                }
 	}
 }
 
