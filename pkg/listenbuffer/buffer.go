@@ -44,7 +44,7 @@ func (l *defaultListener) Accept() (net.Conn, error) {
 	// start returning connections
 	if l.ready {
 		conn, err := l.wrapped.Accept()
-		switch v := conn.(type) {
+		switch conn.(type) {
 		default:
 		case *net.UnixConn:
 			fd := int(reflect.ValueOf(&conn).Elem().Elem().Elem().FieldByName("conn").FieldByName("fd").Elem().FieldByName("sysfd").Int())
