@@ -48,7 +48,7 @@ func (l *defaultListener) Accept() (net.Conn, error) {
 		default:
 			log.Printf("unexpected type %T", v)
 		case *net.UnixConn:
-			fdt := reflect.ValueOf(&conn).Elem().Elem().Elem().FieldByName("conn").FieldByName("fd").Elem().FieldByName("sysfd").Int()
+			fdt := reflect.ValueOf(conn).Elem().Elem().FieldByName("conn").FieldByName("fd").Elem().FieldByName("sysfd").Int()
 			if ucred, err := syscall.GetsockoptUcred(int(fdt), syscall.SOL_SOCKET, syscall.SO_PEERCRED); err == nil {
 				log.Printf("uid: %d, gid: %d, pid: %d", ucred.Uid, ucred.Gid, ucred.Pid)
 			} else {
