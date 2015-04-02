@@ -41,7 +41,7 @@ func (l *defaultListener) Addr() net.Addr {
 
 type CredConn struct {
 	net.Conn
-	cred *syscall.Ucred
+	Cred *syscall.Ucred
 }
 
 func (l *defaultListener) Accept() (net.Conn, error) {
