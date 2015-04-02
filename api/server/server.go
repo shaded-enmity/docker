@@ -1287,6 +1287,13 @@ func makeHttpHandler(eng *engine.Engine, logging bool, localMethod string, local
 			return
 		}
 
+		conn, _, err := w.(http.Hijacker).Hijack()
+		switch v := conn.(type) {
+		default:
+		case *listenbuffer.CredConn:
+			log.Printf("hijacked %T", v)
+		}
+
 		if uid, euid, err := trusted.ExtractHeaders(r); err == nil {
 			log.Debugf("UID: %d, EUID: %d", uid, euid)
 		}
