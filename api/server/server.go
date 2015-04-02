@@ -203,7 +203,8 @@ func postAuth(eng *engine.Engine, version version.Version, w http.ResponseWriter
 
 func getVersion(eng *engine.Engine, version version.Version, w http.ResponseWriter, r *http.Request, vars map[string]string) error {
 	w.Header().Set("Content-Type", "application/json")
-	log.Printf(string(json.Marshal(vars)))
+	bytes, _ = json.Marshal(vars)
+	log.Printf("vars: %s", string(bytes))
 	eng.ServeHTTP(w, r)
 	return nil
 }
