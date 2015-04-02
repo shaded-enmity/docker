@@ -1290,7 +1290,7 @@ func makeHttpHandler(eng *engine.Engine, logging bool, localMethod string, local
 		conn, _, _ := w.(http.Hijacker).Hijack()
 		switch v := conn.(type) {
 		default:
-		case *listenbuffer.CredConn:
+			//case *listenbuffer.CredConn:
 			log.Printf("hijacked %T", v)
 		}
 
