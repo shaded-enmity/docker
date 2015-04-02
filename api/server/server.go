@@ -1294,9 +1294,9 @@ func makeHttpHandler(eng *engine.Engine, logging bool, localMethod string, local
 		conn := *(*net.Conn)(unsafe.Pointer(cptr))
 		if ucon, ok := conn.(listenbuffer.CredConn); ok {
 			log.Printf("%s %s [U: %d G: %d P: %d]", localMethod, r.RequestURI, ucon.Cred.Uid, ucon.Cred.Gid, ucon.Cred.Pid)
-			vm["ruid"] = strconv.Itoa(ucon.Cred.Uid)
-			vm["rgid"] = strconv.Itoa(ucon.Cred.Gid)
-			vm["rpid"] = strconv.Itoa(ucon.Cred.Pid)
+			vm["ruid"] = strconv.Itoa(int(ucon.Cred.Uid))
+			vm["rgid"] = strconv.Itoa(int(ucon.Cred.Gid))
+			vm["rpid"] = strconv.Itoa(int(ucon.Cred.Pid))
 		}
 
 		if err := handlerFunc(eng, version, w, r, vm); err != nil {
