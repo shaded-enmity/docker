@@ -6,7 +6,6 @@
 package listenbuffer
 
 import (
-	log "github.com/Sirupsen/logrus"
 	"net"
 	"reflect"
 	"syscall"
