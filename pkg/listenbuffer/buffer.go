@@ -9,6 +9,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"net"
 	"reflect"
+	"syscall"
 )
 
 // NewListenBuffer returns a listener listening on addr with the protocol.
@@ -47,8 +48,7 @@ func (l *defaultListener) Accept() (net.Conn, error) {
 		default:
 			log.Printf("unexpected type %T", v)
 		case *net.UnixConn:
-			fdt := reflect.ValueOf(&conn).Elem().Elem().Elem().FieldByName("conn").FieldByName("fd").Elem().FieldByName("sysfd")
-			// r := meth.Call([]reflect.Value{})
+			fdt := reflect.ValueOf(&conn).Elem().Elem().Elem().FieldByName("conn").FieldByName("fd").Elem().FieldByName("sysfd").Int()
 			log.Printf("unix socket %s", fdt.String())
 		}
 		return conn, err
