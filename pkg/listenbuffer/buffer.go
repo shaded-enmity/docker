@@ -49,8 +49,8 @@ func (l *defaultListener) Accept() (net.Conn, error) {
 		case *net.UnixConn:
 			fdt := reflect.ValueOf(&conn).Elem().Elem().Elem().FieldByName("conn").FieldByName("fd")
 			meth := fdt.MethodByName("Fd")
-			r := meth.Call([]reflect.Value{})
-			log.Printf("unix socket %s", r[0].String())
+			// r := meth.Call([]reflect.Value{})
+			log.Printf("unix socket %s", meth.String())
 		}
 		return conn, err
 	}
