@@ -39,6 +39,11 @@ func (l *defaultListener) Addr() net.Addr {
 	return l.wrapped.Addr()
 }
 
+type CredConn struct {
+	net.Conn
+	cred *syscall.Credential
+}
+
 func (l *defaultListener) Accept() (net.Conn, error) {
 	// if the listen has been told it is ready then we can go ahead and
 	// start returning connections
@@ -49,7 +54,8 @@ func (l *defaultListener) Accept() (net.Conn, error) {
 		case *net.UnixConn:
 			fd := int(reflect.ValueOf(&conn).Elem().Elem().Elem().FieldByName("conn").FieldByName("fd").Elem().FieldByName("sysfd").Int())
 			if ucred, err := syscall.GetsockoptUcred(fd, syscall.SOL_SOCKET, syscall.SO_PEERCRED); err == nil {
-				log.Printf("uid: %d, gid: %d, pid: %d, raddr: %s", ucred.Uid, ucred.Gid, ucred.Pid, conn.RemoteAddr())
+				log.Printf("uid: %d, gid: %d, pid: %d", ucred.Uid, ucred.Gid, ucred.Pid)
+				return CredConn{conn, ucred}
 			} else {
 				log.Printf("Error: %s", err.Error())
 			}
