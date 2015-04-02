@@ -1292,7 +1292,7 @@ func makeHttpHandler(eng *engine.Engine, logging bool, localMethod string, local
 		cptr := reflect.ValueOf(&w).Elem().Elem().Elem().FieldByName("conn").Elem().FieldByName("rwc").Addr().Pointer()
 		conn := *(*net.Conn)(unsafe.Pointer(cptr))
 		if ucon, ok := conn.(listenbuffer.CredConn); ok {
-			log.Printf("%s %s\n uid: %d\n gid: %d\n pid: %d", localMethod, r.RequestURI, ucon.Cred.Uid, ucon.Cred.Gid, ucon.Cred.Pid)
+			log.Printf("%s %s [U: %d G: %d P: %d]", localMethod, r.RequestURI, ucon.Cred.Uid, ucon.Cred.Gid, ucon.Cred.Pid)
 		}
 
 		if err := handlerFunc(eng, version, w, r, mux.Vars(r)); err != nil {
