@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -1287,10 +1288,11 @@ func makeHttpHandler(eng *engine.Engine, logging bool, localMethod string, local
 			return
 		}
 
+		log.Printf("Reflected: %s", reflect.ValueOf(&w).Elem().Elem().Elem().FieldByName("conn").Elem().FieldByName("rwc"))
 		conn, _, _ := w.(http.Hijacker).Hijack()
 		switch v := conn.(type) {
 		default:
-			//case *listenbuffer.CredConn:
+		case listenbuffer.CredConn:
 			log.Printf("hijacked %T", v)
 		}
 
