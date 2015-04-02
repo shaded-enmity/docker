@@ -8,6 +8,7 @@ package listenbuffer
 import (
 	log "github.com/Sirupsen/logrus"
 	"net"
+	"reflect"
 )
 
 // NewListenBuffer returns a listener listening on addr with the protocol.
@@ -46,9 +47,8 @@ func (l *defaultListener) Accept() (net.Conn, error) {
 		default:
 			log.Printf("unexpected type %T", v)
 		case *net.UnixConn:
-			var xconn net.UnixConn
-			xconn = conn
-			log.Printf("unix socket %T, %s", v, string(xconn.conn.fd.Fd()))
+			fdt := reflect.ValueOf(conn).FieldByName("conn").FieldByName("fd").Type()
+			log.Printf("unix socket %T", fdt)
 		}
 		return conn, err
 	}
