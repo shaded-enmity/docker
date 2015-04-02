@@ -44,9 +44,7 @@ func (l *defaultListener) Accept() (net.Conn, error) {
 	// start returning connections
 	if l.ready {
 		conn, err := l.wrapped.Accept()
-		switch conn.(type) {
-		default:
-		case *net.UnixConn:
+		if conn.(type) == *net.UnixConn {
 			fd := int(reflect.ValueOf(&conn).Elem().Elem().Elem().FieldByName("conn").FieldByName("fd").Elem().FieldByName("sysfd").Int())
 			if ucred, err := syscall.GetsockoptUcred(fd, syscall.SOL_SOCKET, syscall.SO_PEERCRED); err == nil {
 				log.Printf("uid: %d, gid: %d, pid: %d", ucred.Uid, ucred.Gid, ucred.Pid)
