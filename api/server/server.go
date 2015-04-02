@@ -30,7 +30,6 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/daemon/networkdriver/portallocator"
 	"github.com/docker/docker/engine"
-	"github.com/docker/docker/engine/trusted"
 	"github.com/docker/docker/pkg/listenbuffer"
 	"github.com/docker/docker/pkg/parsers"
 	"github.com/docker/docker/pkg/stdcopy"
@@ -1293,7 +1292,7 @@ func makeHttpHandler(eng *engine.Engine, logging bool, localMethod string, local
 		cptr := reflect.ValueOf(&w).Elem().Elem().Elem().FieldByName("conn").Elem().FieldByName("rwc").Addr().Pointer()
 		conn := *(*net.Conn)(unsafe.Pointer(cptr))
 		if ucon, ok := conn.(listenbuffer.CredConn); ok {
-			log.Printf("uid: %d, gid: %d, pid: %d", ucon.cred.Uid, ucon.cred.Gid, ucon.cred.Pid)
+			log.Printf("uid: %d, gid: %d, pid: %d", ucon.Cred.Uid, ucon.Cred.Gid, ucon.Cred.Pid)
 		}
 		/*
 			switch v := conn.(type) {
