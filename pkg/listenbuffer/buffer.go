@@ -66,8 +66,21 @@ func (l *defaultListener) Addr() net.Addr {
 }
 
 type CredConn struct {
-        net.Conn
-        Cred *syscall.Ucred
+	net.Conn
+	Cred *syscall.Ucred
+}
+
+func newCredConn(conn net.Conn) (net.Conn, error) {
+	if _, ok := conn.(*net.UnixConn); ok {
+		fd := int(reflect.ValueOf(&conn).Elem().Elem().Elem().FieldByName("conn").FieldByName("fd").Elem().FieldByName("sysfd").Int())
+		if ucred, err := syscall.GetsockoptUcred(fd, syscall.SOL_SOCKET, syscall.SO_PEERCRED); err == nil {
+			return CredConn{conn, ucred}, nil
+		} else {
+			return nil, err
+		}
+	}
+
+	return conn, nil
 }
 
 // Accept returns a client connection on the wrapped socket if the listen buffer
@@ -77,16 +90,10 @@ func (l *defaultListener) Accept() (net.Conn, error) {
 	// if the listen has been told it is ready then we can go ahead and
 	// start returning connections
 	if l.ready {
-                conn, err := l.wrapped.Accept()
-                if _, ok := conn.(*net.UnixConn); ok {
-                        fd := int(reflect.ValueOf(&conn).Elem().Elem().Elem().FieldByName("conn").FieldByName("fd").Elem().FieldByName("sysfd").Int())
-                        if ucred, err := syscall.GetsockoptUcred(fd, syscall.SOL_SOCKET, syscall.SO_PEERCRED); err == nil {
-                                return CredConn{conn, ucred}, nil
-                        } else {
-                                return nil, err
-                        }
-                }
-                return conn, err
+		if conn, err := l.wrapped.Accept(); err == nil {
+			return newCredConn(conn)
+		}
+		return conn, err
 	}
 	<-l.activate
 	l.ready = true
