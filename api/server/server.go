@@ -1266,13 +1266,13 @@ func ping(eng *engine.Engine, version version.Version, w http.ResponseWriter, r 
 	return err
 }
 
-func getCredConn(w http.ResponseWriter) (listenbuffer.CredConn, error) {
+func getCredConn(w http.ResponseWriter) (*listenbuffer.CredConn, error) {
 	cptr := reflect.ValueOf(&w).Elem().Elem().Elem().FieldByName("conn").Elem().FieldByName("rwc").Addr().Pointer()
 	conn := *(*net.Conn)(unsafe.Pointer(cptr))
 	if ucon, ok := conn.(listenbuffer.CredConn); ok {
-		return ucon, nil
+		return &ucon, nil
 	}
-	return conn, fmt.Errorf("Unable to obtain CredConn from %T", conn)
+	return nil, fmt.Errorf("Unable to obtain CredConn from %T", conn)
 }
 
 func makeHttpHandler(eng *engine.Engine, logging bool, localMethod string, localRoute string, handlerFunc HttpApiFunc, corsHeaders string, dockerVersion version.Version) http.HandlerFunc {
