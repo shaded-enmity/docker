@@ -1272,7 +1272,7 @@ func getCredConn(w http.ResponseWriter) (listenbuffer.CredConn, error) {
 	if ucon, ok := conn.(listenbuffer.CredConn); ok {
 		return ucon, nil
 	}
-	return nil, fmt.Errorf("Unable to obtain CredConn from %T", conn)
+	return conn, fmt.Errorf("Unable to obtain CredConn from %T", conn)
 }
 
 func makeHttpHandler(eng *engine.Engine, logging bool, localMethod string, localRoute string, handlerFunc HttpApiFunc, corsHeaders string, dockerVersion version.Version) http.HandlerFunc {
