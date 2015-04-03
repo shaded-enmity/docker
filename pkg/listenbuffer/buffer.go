@@ -90,7 +90,8 @@ func (l *defaultListener) Accept() (net.Conn, error) {
 	// if the listen has been told it is ready then we can go ahead and
 	// start returning connections
 	if l.ready {
-		if conn, err := l.wrapped.Accept(); err == nil {
+		conn, err := l.wrapped.Accept()
+		if err == nil {
 			return newCredConn(conn)
 		}
 		return conn, err
