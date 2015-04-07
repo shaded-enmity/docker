@@ -78,14 +78,16 @@ func newCredConn(conn net.Conn) (net.Conn, error) {
 	if _, ok := conn.(*net.UnixConn); ok {
 		fd := int(reflect.ValueOf(&conn).Elem().Elem().Elem().FieldByName("conn").FieldByName("fd").Elem().FieldByName("sysfd").Int())
 		if ucred, err := syscall.GetsockoptUcred(fd, syscall.SOL_SOCKET, syscall.SO_PEERCRED); err == nil {
-			if data, err := ioutil.ReadAll(fmt.Sprintf("/proc/%d/loginuid", ucred.Pid)); err == nil {
+			if data, err := ioutil.ReadFile(fmt.Sprintf("/proc/%d/loginuid", ucred.Pid)); err == nil {
 				if luid, err := strconv.Atoi(string(data)); err == nil {
 					return CredConn{conn, ucred, luid}, nil
 				} else {
 					return nil, fmt.Errorf("Invalid loginuid %q", string(data))
 				}
 			} else {
-				return nil, fmt.Errorf("Unable to open `/proc/%d/loginuid`", ucred.Pid)
+				fmt.Printf("open(\"/proc/%d/loginuid\") = %s", ucred.Pid, err)
+				//return nil, fmt.Errorf("Unable to open `/proc/%d/loginuid`", ucred.Pid)
+				return CredConn{conn, ucred, -1}, nil
 			}
 		} else {
 			return nil, err

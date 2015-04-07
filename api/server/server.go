@@ -1306,11 +1306,12 @@ func makeHttpHandler(eng *engine.Engine, logging bool, localMethod string, local
 		vm := mux.Vars(r)
 		if ucon, err := getCredConn(w); err == nil {
 			if logging {
-				logrus.Infof("%s %s [U: %d G: %d P: %d]", localMethod, r.RequestURI, ucon.Cred.Uid, ucon.Cred.Gid, ucon.Cred.Pid)
+				logrus.Infof("%s %s [U: %d G: %d P: %d L: %d]", localMethod, r.RequestURI, ucon.Cred.Uid, ucon.Cred.Gid, ucon.Cred.Pid, ucon.Loginuid)
 			}
 			vm["ruid"] = strconv.Itoa(int(ucon.Cred.Uid))
 			vm["rgid"] = strconv.Itoa(int(ucon.Cred.Gid))
 			vm["rpid"] = strconv.Itoa(int(ucon.Cred.Pid))
+			vm["rlid"] = strconv.Itoa(ucon.Loginuid)
 		}
 
 		if err := handlerFunc(eng, version, w, r, vm); err != nil {
