@@ -24,6 +24,7 @@ import (
 	"github.com/docker/docker/daemon"
 	"github.com/docker/docker/daemon/networkdriver/bridge"
 	"github.com/docker/docker/engine"
+	"github.com/docker/docker/engine/trusted"
 	"github.com/docker/docker/pkg/listenbuffer"
 	"github.com/docker/docker/pkg/parsers"
 	"github.com/docker/docker/pkg/stdcopy"
@@ -195,8 +196,8 @@ func postAuth(eng *engine.Engine, version version.Version, w http.ResponseWriter
 
 func getVersion(eng *engine.Engine, version version.Version, w http.ResponseWriter, r *http.Request, vars map[string]string) error {
 	w.Header().Set("Content-Type", "application/json")
-	b, _ := json.Marshal(vars)
-	logrus.Printf("vars: %s", string(b))
+	//b, _ := json.Marshal(vars)
+	//logrus.Printf("vars: %s", string(b))
 	eng.ServeHTTP(w, r)
 	return nil
 }
@@ -208,6 +209,9 @@ func postContainersKill(eng *engine.Engine, version version.Version, w http.Resp
 	if err := parseForm(r); err != nil {
 		return err
 	}
+
+	trusted.Audit(trusted.EVENT_CONTAINER|trusted.EVENT_CONTROL, vars, "kill")
+
 	job := eng.Job("kill", vars["name"])
 	if sig := r.Form.Get("signal"); sig != "" {
 		job.Args = append(job.Args, sig)
@@ -226,6 +230,9 @@ func postContainersPause(eng *engine.Engine, version version.Version, w http.Res
 	if err := parseForm(r); err != nil {
 		return err
 	}
+
+	trusted.Audit(trusted.EVENT_CONTAINER|trusted.EVENT_CONTROL, vars, "pause")
+
 	job := eng.Job("pause", vars["name"])
 	if err := job.Run(); err != nil {
 		return err
@@ -241,6 +248,9 @@ func postContainersUnpause(eng *engine.Engine, version version.Version, w http.R
 	if err := parseForm(r); err != nil {
 		return err
 	}
+
+	trusted.Audit(trusted.EVENT_CONTAINER|trusted.EVENT_CONTROL, vars, "unpause")
+
 	job := eng.Job("unpause", vars["name"])
 	if err := job.Run(); err != nil {
 		return err
@@ -486,6 +496,9 @@ func postImagesTag(eng *engine.Engine, version version.Version, w http.ResponseW
 		return fmt.Errorf("Missing parameter")
 	}
 
+	tagstr := fmt.Sprintf("tag %s as %s:%s", vars["name"], r.Form.Get("repo"), r.Form.Get("tag"))
+	trusted.Audit(trusted.EVENT_IMAGE|trusted.EVENT_CONTROL, vars, "tag")
+
 	job := eng.Job("tag", vars["name"], r.Form.Get("repo"), r.Form.Get("tag"))
 	job.Setenv("force", r.Form.Get("force"))
 	if err := job.Run(); err != nil {
@@ -504,6 +517,11 @@ func postCommit(eng *engine.Engine, version version.Version, w http.ResponseWrit
 		job          = eng.Job("commit", r.Form.Get("container"))
 		stdoutBuffer = bytes.NewBuffer(nil)
 	)
+
+	// container.commit() == image.create()
+	repotag := fmt.Sprintf("%s %s:%s", r.Form.Get("container"), r.Form.Get("repo"), r.Form.Get("tag"))
+	trusted.Audit(trusted.EVENT_IMAGE|trusted.EVENT_CREATE, vars, repotag)
+	//trusted.Audit(trusted.EVENT_CONTAINER | trusted.EVENT_CONTROL, vars, "kill")
 
 	if err := checkForJson(r); err != nil {
 		return err
@@ -547,6 +565,10 @@ func postImagesCreate(eng *engine.Engine, version version.Version, w http.Respon
 		tag   = r.Form.Get("tag")
 		job   *engine.Job
 	)
+
+	repotag := fmt.Sprintf("%s %s:%s", image, repo, tag)
+	trusted.Audit(trusted.EVENT_IMAGE|trusted.EVENT_CREATE, vars, repotag)
+
 	authEncoded := r.Header.Get("X-Registry-Auth")
 	authConfig := &registry.AuthConfig{}
 	if authEncoded != "" {
@@ -818,6 +840,8 @@ func postContainersStart(eng *engine.Engine, version version.Version, w http.Res
 		name = vars["name"]
 		job  = eng.Job("start", name)
 	)
+
+	trusted.Audit(trusted.EVENT_CONTAINER|trusted.EVENT_CREATE, vars, name)
 
 	// If contentLength is -1, we can assumed chunked encoding
 	// or more technically that the length is unknown
