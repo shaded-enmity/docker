@@ -28,8 +28,11 @@ continue to block until a client connects or an error occurs.
 package listenbuffer
 
 import (
+	"fmt"
+	"io/ioutil"
 	"net"
 	"reflect"
+	"strconv"
 	"syscall"
 )
 
@@ -67,14 +70,23 @@ func (l *defaultListener) Addr() net.Addr {
 
 type CredConn struct {
 	net.Conn
-	Cred *syscall.Ucred
+	Cred     *syscall.Ucred
+	Loginuid int
 }
 
 func newCredConn(conn net.Conn) (net.Conn, error) {
 	if _, ok := conn.(*net.UnixConn); ok {
 		fd := int(reflect.ValueOf(&conn).Elem().Elem().Elem().FieldByName("conn").FieldByName("fd").Elem().FieldByName("sysfd").Int())
 		if ucred, err := syscall.GetsockoptUcred(fd, syscall.SOL_SOCKET, syscall.SO_PEERCRED); err == nil {
-			return CredConn{conn, ucred}, nil
+			if data, err := ioutil.ReadAll(fmt.Sprintf("/proc/%d/loginuid", ucred.Pid)); err == nil {
+				if luid, err := strconv.Atoi(string(data)); err == nil {
+					return CredConn{conn, ucred, luid}, nil
+				} else {
+					return nil, fmt.Errorf("Invalid loginuid %q", string(data))
+				}
+			} else {
+				return nil, fmt.Errorf("Unable to open `/proc/%d/loginuid`", ucred.Pid)
+			}
 		} else {
 			return nil, err
 		}
