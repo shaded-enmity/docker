@@ -497,7 +497,7 @@ func postImagesTag(eng *engine.Engine, version version.Version, w http.ResponseW
 	}
 
 	tagstr := fmt.Sprintf("tag %s as %s:%s", vars["name"], r.Form.Get("repo"), r.Form.Get("tag"))
-	trusted.Audit(trusted.EVENT_IMAGE|trusted.EVENT_CONTROL, vars, "tag")
+	trusted.Audit(trusted.EVENT_IMAGE|trusted.EVENT_CONTROL, vars, tagstr)
 
 	job := eng.Job("tag", vars["name"], r.Form.Get("repo"), r.Form.Get("tag"))
 	job.Setenv("force", r.Form.Get("force"))
@@ -804,6 +804,8 @@ func deleteContainers(eng *engine.Engine, version version.Version, w http.Respon
 	if vars == nil {
 		return fmt.Errorf("Missing parameter")
 	}
+
+	trusted.Audit(trusted.EVENT_CONTAINER|trusted.EVENT_DELETE, vars, vars["name"])
 	job := eng.Job("rm", vars["name"])
 
 	job.Setenv("forceRemove", r.Form.Get("force"))
@@ -824,6 +826,9 @@ func deleteImages(eng *engine.Engine, version version.Version, w http.ResponseWr
 	if vars == nil {
 		return fmt.Errorf("Missing parameter")
 	}
+
+	trusted.Audit(trusted.EVENT_IMAGE|trusted.EVENT_DELETE, vars, vars["name"])
+
 	var job = eng.Job("image_delete", vars["name"])
 	streamJSON(job, w, false)
 	job.Setenv("force", r.Form.Get("force"))
@@ -841,7 +846,7 @@ func postContainersStart(eng *engine.Engine, version version.Version, w http.Res
 		job  = eng.Job("start", name)
 	)
 
-	trusted.Audit(trusted.EVENT_CONTAINER|trusted.EVENT_CREATE, vars, name)
+	trusted.Audit(trusted.EVENT_CONTAINER|trusted.EVENT_CONTROL, vars, name)
 
 	// If contentLength is -1, we can assumed chunked encoding
 	// or more technically that the length is unknown
@@ -877,6 +882,9 @@ func postContainersStop(eng *engine.Engine, version version.Version, w http.Resp
 	if vars == nil {
 		return fmt.Errorf("Missing parameter")
 	}
+
+	trusted.Audit(trusted.EVENT_CONTAINER|trusted.EVENT_CONTROL, vars, vars["name"])
+
 	job := eng.Job("stop", vars["name"])
 	job.Setenv("t", r.Form.Get("t"))
 	if err := job.Run(); err != nil {
