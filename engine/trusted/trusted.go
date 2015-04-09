@@ -74,5 +74,5 @@ func Audit(typ Event, vars map[string]string, context interface{}) {
 		logString = "ERROR: %s"
 	}
 
-	logrus.Infof(logString+"\n--->8---\n", context)
+	logrus.Infof(credStr+logString+"\n--->8---\n", context)
 }
