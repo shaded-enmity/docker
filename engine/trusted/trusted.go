@@ -54,6 +54,8 @@ func Audit(typ Event, vars map[string]string, context interface{}) {
 	uname := lookupUid(credentials.Uid)
 	lname := lookupUid(credentials.Lid)
 	gname := lookupGid(credentials.Gid)
+
+	credStr := fmt.Sprintf("---8<--- DOCKER-AUDIT MESSAGE\nU:[] L:[] G:[] P:%d\n\n", uname, lname, gname, credentials.Pid)
 	var logString string
 
 	if typ&EVENT_CREATE != 0 {
@@ -72,5 +74,5 @@ func Audit(typ Event, vars map[string]string, context interface{}) {
 		logString = "ERROR: %s"
 	}
 
-	logrus.Infof(logString, context)
+	logrus.Infof(logString+"\n--->8---\n", context)
 }
