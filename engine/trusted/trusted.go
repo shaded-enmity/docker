@@ -55,21 +55,21 @@ func Audit(typ Event, vars map[string]string, context interface{}) {
 	lname := lookupUid(credentials.Lid)
 	gname := lookupGid(credentials.Gid)
 
-	credStr := fmt.Sprintf("---8<--- DOCKER-AUDIT MESSAGE\nU:[] L:[] G:[] P:%d\n\n", uname, lname, gname, credentials.Pid)
+	credStr := fmt.Sprintf("---8<--- DOCKER-AUDIT MESSAGE\nU:[%s] L:[%s] G:[%s] P:%d\n\n", uname, lname, gname, credentials.Pid)
 	var logString string
 
 	if typ&EVENT_CREATE != 0 {
 		if typ&EVENT_IMAGE != 0 {
-			logString = fmt.Sprintf("Image Create: %s")
+			logString = "Image Create: %s"
 		} else if typ&EVENT_CONTAINER != 0 {
-			logString = fmt.Sprintf("Container Create: %s")
+			logString = "Container Create: %s"
 		} else {
 			logString = "ERROR: %s"
 		}
 	} else if typ&EVENT_DELETE != 0 {
-		logString = fmt.Sprintf("Delete: %s")
+		logString = "Delete: %s"
 	} else if typ&EVENT_CONTROL != 0 { // container only - start, stop, kill
-		logString = fmt.Sprintf("Control Event: %s")
+		logString = "Control Event: %s"
 	} else {
 		logString = "ERROR: %s"
 	}
