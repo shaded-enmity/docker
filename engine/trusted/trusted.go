@@ -5,6 +5,8 @@ import (
 	"strconv"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/docker/docker/daemon"
+	"github.com/docker/docker/runconfig"
 )
 
 type Event int
@@ -41,6 +43,41 @@ func extractVars(vars map[string]string) Credentials {
 	return Credentials{u, p, g, l}
 }
 
+func auditContainer(c *daemon.Container) string {
+	var traits string
+	rc := c.HostConfig()
+	hc := c.Config
+
+	if rc.Privileged {
+		traits += " - Privileged\n"
+	}
+	if len(rc.Links) > 0 {
+
+	}
+
+	if len(rc.VolumesFrom) > 0 {
+
+	}
+
+	if len(rc.Devices) > 0 {
+
+	}
+
+	if rc.NetworkMode.IsHost() {
+
+	}
+
+	if rc.PidMode.IsHost() {
+
+	}
+
+	if rc.IpcMode.IsHost() {
+
+	}
+
+	return fmt.Sprintf("\n\t", c.ID, c.ImageID)
+}
+
 func lookupUid(uid int) string {
 	return fmt.Sprintf("User %d", uid)
 }
@@ -55,7 +92,7 @@ func Audit(typ Event, vars map[string]string, context interface{}) {
 	lname := lookupUid(credentials.Lid)
 	gname := lookupGid(credentials.Gid)
 
-	credStr := fmt.Sprintf("---8<--- DOCKER-AUDIT MESSAGE\nU:[%s] L:[%s] G:[%s] P:%d\n\n", uname, lname, gname, credentials.Pid)
+	credStr := fmt.Sprintf("\n---8<--- DOCKER-AUDIT MESSAGE\nU:[%s] L:[%s] G:[%s] P:%d\n\n", uname, lname, gname, credentials.Pid)
 	var logString string
 
 	if typ&EVENT_CREATE != 0 {
@@ -69,10 +106,12 @@ func Audit(typ Event, vars map[string]string, context interface{}) {
 	} else if typ&EVENT_DELETE != 0 {
 		logString = "Delete: %s"
 	} else if typ&EVENT_CONTROL != 0 { // container only - start, stop, kill
+		cont := context.(*container.Container)
+		context := auditContainer(cont)
 		logString = "Control Event: %s"
 	} else {
 		logString = "ERROR: %s"
 	}
 
-	logrus.Infof(credStr+logString+"\n--->8---\n", context)
+	logrus.Infof(credStr+logString+"\n--->8--- DOCKER-AUDIT MESSAGE\n", context)
 }

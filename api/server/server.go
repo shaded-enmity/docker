@@ -846,7 +846,8 @@ func postContainersStart(eng *engine.Engine, version version.Version, w http.Res
 		job  = eng.Job("start", name)
 	)
 
-	trusted.Audit(trusted.EVENT_CONTAINER|trusted.EVENT_CONTROL, vars, name)
+	container := eng.getDaemon().Get(name)
+	trusted.Audit(trusted.EVENT_CONTAINER|trusted.EVENT_CONTROL, vars, container)
 
 	// If contentLength is -1, we can assumed chunked encoding
 	// or more technically that the length is unknown
