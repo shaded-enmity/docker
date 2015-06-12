@@ -373,6 +373,47 @@ func (container *Container) buildHostnameFile() error {
 	return ioutil.WriteFile(container.HostnamePath, []byte(container.Config.Hostname+"\n"), 0644)
 }
 
+func (container *Container) buildPasswdFile() error {
+	passwdPath, err := container.GetRootResourcePath("etc/passwd")
+	if err != nil {
+		return err
+	}
+
+	if container.Config.User != "" {
+		parts := strings.Split(container.Config.User, ":")
+		name, uid := "DockerUser", ""
+
+		switch len(parts) {
+		/* UID */
+		case 0:
+			uid = parts
+			break
+		/* UID & GID */
+		case 1:
+			uid = parts[0]
+			break
+		/* Hmm. */
+		default:
+			return nil
+		}
+
+		if data, err := ioutil.ReadFile(passwdPath); err == nil {
+			for _, line := range strings.Split(string(data), "\n") {
+				if strings.HasPrefix("DockerUser") {
+					return fmt.Errorf("Image already contains user named DockerUser")
+				}
+			}
+		}
+
+		if fp, err := os.OpenFile(passwdPath, os.O_WRONLY|os.O_APPEND, os.FileMode(0666)); err == nil {
+			fp.WriteString(fmt.Sprintf("%s:%s:%s:Docker Mapped User:/:/sbin/nologin\n", name, uid, uid))
+			fp.Close()
+		}
+	}
+
+	return nil
+}
+
 func (container *Container) buildJoinOptions() ([]libnetwork.EndpointOption, error) {
 	var (
 		joinOptions []libnetwork.EndpointOption
