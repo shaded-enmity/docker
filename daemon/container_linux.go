@@ -376,10 +376,12 @@ func (container *Container) buildHostnameFile() error {
 func (container *Container) buildPasswdFile() error {
 	passwdPath, err := container.GetRootResourcePath("etc/passwd")
 	if err != nil {
+		fmt.Printf("/etc/passwd not found!")
 		return err
 	}
 
 	if container.Config.User != "" {
+		fmt.Printf("Injecting %q into /etc/passwd")
 		parts := strings.Split(container.Config.User, ":")
 		name, uid := "DockerUser", ""
 
