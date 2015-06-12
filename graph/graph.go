@@ -281,6 +281,7 @@ func SetupInitLayer(initLayer string) error {
 		"/etc/resolv.conf": "file",
 		"/etc/hosts":       "file",
 		"/etc/hostname":    "file",
+		"/etc/passwd":      "file",
 		"/dev/console":     "file",
 		"/etc/mtab":        "/proc/mounts",
 	} {
