@@ -376,12 +376,11 @@ func (container *Container) buildHostnameFile() error {
 func (container *Container) buildPasswdFile() error {
 	passwdPath, err := container.GetRootResourcePath("etc/passwd")
 	if err != nil {
-		fmt.Printf("/etc/passwd not found!")
 		return err
 	}
 
 	if container.Config.User != "" {
-		fmt.Printf("Injecting %q into /etc/passwd")
+		fmt.Printf("Injecting %q into /etc/passwd", container.Config.User)
 		parts := strings.Split(container.Config.User, ":")
 		name, uid := "DockerUser", ""
 
@@ -405,11 +404,15 @@ func (container *Container) buildPasswdFile() error {
 					return fmt.Errorf("Image already contains user named DockerUser")
 				}
 			}
+		} else {
+			return err
 		}
 
 		if fp, err := os.OpenFile(passwdPath, os.O_WRONLY|os.O_APPEND, os.FileMode(0666)); err == nil {
 			fp.WriteString(fmt.Sprintf("%s:%s:%s:Docker Mapped User:/:/sbin/nologin\n", name, uid, uid))
 			fp.Close()
+		} else {
+			return err
 		}
 	}
 
