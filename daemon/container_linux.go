@@ -374,7 +374,7 @@ func (container *Container) buildHostnameFile() error {
 }
 
 func (container *Container) buildPasswdFile() error {
-	passwdPath, err := container.GetRootResourcePath("etc/passwd")
+	passwdPath, err := container.GetResourcePath("etc/passwd")
 	if err != nil {
 		return err
 	}
