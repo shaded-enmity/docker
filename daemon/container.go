@@ -255,10 +255,6 @@ func (container *Container) Start() (err error) {
 	if err := container.initializeNetworking(); err != nil {
 		return err
 	}
-	if err := container.buildPasswdFile(); err != nil {
-		return err
-	}
-
 	linkedEnv, err := container.setupLinkedContainers()
 	if err != nil {
 		return err
@@ -273,6 +269,10 @@ func (container *Container) Start() (err error) {
 
 	mounts, err := container.setupMounts()
 	if err != nil {
+		return err
+	}
+
+	if err := container.buildPasswdFile(); err != nil {
 		return err
 	}
 
