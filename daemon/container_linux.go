@@ -386,7 +386,7 @@ func (container *Container) buildPasswdFile() error {
 		switch len(parts) {
 		/* UID */
 		case 0:
-			uid = parts
+			uid = container.Config.User
 			break
 		/* UID & GID */
 		case 1:
@@ -399,7 +399,7 @@ func (container *Container) buildPasswdFile() error {
 
 		if data, err := ioutil.ReadFile(passwdPath); err == nil {
 			for _, line := range strings.Split(string(data), "\n") {
-				if strings.HasPrefix("DockerUser") {
+				if strings.HasPrefix(line, "DockerUser") {
 					return fmt.Errorf("Image already contains user named DockerUser")
 				}
 			}
