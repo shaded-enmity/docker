@@ -9,9 +9,12 @@ import (
 	"strings"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/docker/distribution/digest"
+	"github.com/docker/distribution/manifest"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/builder"
 	"github.com/docker/docker/cliconfig"
+	"github.com/docker/docker/daemon"
 	"github.com/docker/docker/graph"
 	"github.com/docker/docker/pkg/ioutils"
 	"github.com/docker/docker/pkg/parsers"
@@ -260,6 +263,124 @@ func (s *Server) getImagesByName(version version.Version, w http.ResponseWriter,
 	}
 
 	return writeJSON(w, http.StatusOK, imageInspect)
+}
+
+func (s *Server) getImageDigest(img string) (digest.Digest, error) {
+	image, err := s.daemon.Graph().Get(img)
+	if err != nil {
+		return "", err
+	}
+	arch, err := s.daemon.Graph().TarLayer(image)
+	if err != nil {
+		return "", err
+	}
+	defer arch.Close()
+	digester := digest.Canonical.New()
+	_, err = io.Copy(digester.Hash(), arch)
+	if err != nil {
+		return "", err
+	}
+
+	return digester.Digest(), nil
+}
+
+func (s *Server) getImagesManifest(version version.Version, w http.ResponseWriter, r *http.Request, vars map[string]string) error {
+	if vars == nil {
+		return fmt.Errorf("Missing parameter")
+	}
+	if err := parseForm(r); err != nil {
+		return err
+	}
+
+	output := ioutils.NewWriteFlusher(w)
+	var name string
+	if _, ok := vars["name"]; ok {
+		name = vars["name"]
+	} else {
+		name = r.Form["names"][0]
+	}
+
+	var (
+		repository, tag = parsers.ParseRepositoryTag(name)
+	)
+
+	if !strings.Contains("/", repository) {
+		repository = "docker.io/" + repository
+	}
+
+	logrus.Debugf("name: %q repository: %q tag: %q", name, repository, tag)
+
+	image, error := s.daemon.Repositories().LookupImage(name)
+	if error != nil {
+		return fmt.Errorf("Invalid image name %q", name)
+	}
+
+	layersSeen := make(map[string]bool)
+
+	layer, err := s.daemon.Graph().Get(image.ID)
+	if err != nil {
+		return err
+	}
+
+	m := &manifest.Manifest{
+		Versioned: manifest.Versioned{
+			SchemaVersion: 1,
+		},
+		Name:         repository,
+		Tag:          tag,
+		Architecture: layer.Architecture,
+		FSLayers:     []manifest.FSLayer{},
+		History:      []manifest.History{},
+	}
+
+	var metadata runconfig.Config
+	if layer != nil && layer.Config != nil {
+		metadata = *layer.Config
+	}
+
+	for ; layer != nil; layer, err = s.daemon.Graph().GetParent(layer) {
+		if err != nil {
+			return err
+		}
+
+		if layersSeen[layer.ID] {
+			break
+		}
+
+		if layer.Config != nil && metadata.Image != layer.ID {
+			if err := runconfig.Merge(&metadata, layer.Config); err != nil {
+				return err
+			}
+		}
+
+		jsonData, err := s.daemon.Graph().RawJSON(layer.ID)
+		if err != nil {
+			return fmt.Errorf("cannot retrieve the path for %s: %s", layer.ID, err)
+		}
+
+		dgst, err := s.daemon.Graph().GetDigest(layer.ID)
+		if err != nil {
+			logrus.Debugf("Error: %s", err)
+		}
+
+		if dgst == "" {
+			if dgst, err = s.getImageDigest(layer.ID); err != nil {
+				return fmt.Errorf("Error computing digest for: %s: %s", layer.ID, err)
+			}
+
+			s.daemon.Graph().SetDigest(layer.ID, dgst)
+		}
+
+		m.FSLayers = append(m.FSLayers, manifest.FSLayer{BlobSum: dgst})
+		m.History = append(m.History, manifest.History{V1Compatibility: string(jsonData)})
+
+		layersSeen[layer.ID] = true
+	}
+
+	obj, err := json.Marshal(m, "", "   ")
+	output.Write(obj)
+
+	return nil
 }
 
 func (s *Server) postBuild(version version.Version, w http.ResponseWriter, r *http.Request, vars map[string]string) error {

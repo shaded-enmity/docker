@@ -317,6 +317,7 @@ func createRouter(s *Server) *mux.Router {
 			"/images/{name:.*}/get":           s.getImagesGet,
 			"/images/{name:.*}/history":       s.getImagesHistory,
 			"/images/{name:.*}/json":          s.getImagesByName,
+			"/images/{name:.*}/manifest":      s.getImagesManifest,
 			"/containers/json":                s.getContainersJSON,
 			"/containers/{name:.*}/export":    s.getContainersExport,
 			"/containers/{name:.*}/changes":   s.getContainersChanges,
