@@ -28,7 +28,7 @@ func (cli *DockerCli) CmdManifest(args ...string) (err error) {
 				cli.out.Write([]byte("Error writing response to stdout: " + err.Error() + "\n"))
 			} else {
 				//digester.Digest().Algorithm()
-				cli.out.Write([]byte(digester.Digest().String()))
+				cli.out.Write([]byte(digester.Digest().String() + "\n"))
 			}
 		} else {
 			if _, err := io.Copy(cli.out, serverResp.body); err != nil {

@@ -377,9 +377,11 @@ func (s *Server) getImagesManifest(version version.Version, w http.ResponseWrite
 	}
 
 	obj, err := json.MarshalIndent(m, "", "   ")
-	output.Write(obj)
+	if err == nil {
+		output.Write(obj)
+	}
 
-	return nil
+	return err
 }
 
 func (s *Server) postBuild(version version.Version, w http.ResponseWriter, r *http.Request, vars map[string]string) error {
