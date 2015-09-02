@@ -376,7 +376,7 @@ func (s *Server) getImagesManifest(version version.Version, w http.ResponseWrite
 		layersSeen[layer.ID] = true
 	}
 
-	obj, err := json.Marshal(m, "", "   ")
+	obj, err := json.MarshalIndent(m, "", "   ")
 	output.Write(obj)
 
 	return nil
