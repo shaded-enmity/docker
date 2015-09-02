@@ -303,7 +303,7 @@ func (s *Server) getImagesManifest(version version.Version, w http.ResponseWrite
 		repository, tag = parsers.ParseRepositoryTag(name)
 	)
 
-	if !strings.Contains("/", repository) {
+	if !strings.Contains(repository, "/") {
 		repository = "docker.io/" + repository
 	}
 
